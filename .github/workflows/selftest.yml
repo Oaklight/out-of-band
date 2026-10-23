@@ -158,7 +158,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BODY: ${{ needs.operator.outputs.valid }}
           PR: ${{ github.event.pull_request.number }}
-        run: gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$BODY"
+        run: |
+          # A force-push leaves receipts for the old commit behind; two
+          # disagreeing trusted blocks are invalid by design.
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
+            | jq -r '.[][] | select(.user.login == "github-actions[bot]")
+                     | select(.body | contains("<!-- receipt:v1 -->")) | .id' \
+            | xargs -r -n1 gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/comments/{}"
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$BODY"
 
   verify-comment:
     needs: [operator, comment]
