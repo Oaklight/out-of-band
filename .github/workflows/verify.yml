@@ -1,0 +1,119 @@
+name: outboard verify
+
+on:
+  workflow_call:
+    inputs:
+      pr:
+        description: PR number for comment collection and the sticky comment; 0 disables both
+        type: string
+        default: "0"
+      commit:
+        description: Expected head SHA
+        type: string
+        required: true
+      job:
+        description: Job name the receipt must carry
+        type: string
+        required: true
+      required:
+        description: Whether this PR needs a receipt at all
+        type: boolean
+        default: true
+      check-name:
+        description: Check run name; this is what branch protection matches
+        type: string
+        default: outboard
+      receipt:
+        description: Receipt text passed directly; takes precedence over comments
+        type: string
+        default: ""
+      allowed-signers:
+        description: Path in the caller repository, read from the default branch
+        type: string
+        default: .github/allowed_signers
+      trusted-authors:
+        description: Comma-separated logins allowed to supply a receipt
+        type: string
+        default: ""
+    outputs:
+      verdict:
+        description: verified, failed, unverified, or not applicable
+        value: ${{ jobs.verify.outputs.verdict }}
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+env:
+  OUTBOARD_VERSION: "0.1.0"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      verdict: ${{ steps.publish.outputs.verdict }}
+    concurrency:
+      group: outboard-${{ inputs.check-name }}-${{ inputs.commit }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out the caller's default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch || github.ref_name }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install outboard
+        run: |
+          if [ "$GITHUB_REPOSITORY" = "Oaklight/outboard" ]; then
+            pip install .
+          else
+            pip install "outboard==${OUTBOARD_VERSION}"
+          fi
+
+      - name: Resolve receipt
+        id: resolve
+        env:
+          PR: ${{ inputs.pr }}
+          RECEIPT: ${{ inputs.receipt }}
+          TRUSTED: ${{ inputs.trusted-authors }}
+        run: python -m outboard.workflow collect
+
+      - name: Verify receipt
+        id: verify
+        if: ${{ inputs.required && steps.resolve.outputs.found == 'true' }}
+        env:
+          ALLOWED: ${{ inputs.allowed-signers }}
+          COMMIT: ${{ inputs.commit }}
+          JOB: ${{ inputs.job }}
+        run: |
+          set +e
+          outboard verify \
+            --block "$RUNNER_TEMP/receipt.md" \
+            --allowed-signers "$ALLOWED" \
+            --repo "$GITHUB_REPOSITORY" \
+            --commit "$COMMIT" \
+            --expect-job "$JOB" \
+            --json > "$RUNNER_TEMP/verdict.json"
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Publish result
+        id: publish
+        env:
+          REQUIRED: ${{ inputs.required }}
+          FOUND: ${{ steps.resolve.outputs.found }}
+          RESOLVE_CODE: ${{ steps.resolve.outputs.code }}
+          SOURCE: ${{ steps.resolve.outputs.source }}
+          VERIFY_EXIT: ${{ steps.verify.outputs.exit }}
+          COMMIT: ${{ inputs.commit }}
+          JOB: ${{ inputs.job }}
+          PR: ${{ inputs.pr }}
+          CHECK_NAME: ${{ inputs.check-name }}
+        run: python -m outboard.workflow publish
