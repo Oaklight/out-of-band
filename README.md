@@ -2,9 +2,31 @@
 
 Out-of-band receipts for CI gates.
 
-A job runs where GitHub cannot reach it, signs a receipt bound to a commit, and
-a hosted workflow verifies that receipt and publishes the verdict as a check.
-The machine that signs needs no inbound path and no GitHub credential.
+## Why this exists
+
+Picture a pull request that only one machine can really test. The code needs a
+particular accelerator, a licensed toolchain, a database reachable only from
+the office network, or a lab box that several people share. GitHub's runners
+cannot get there, and the check cannot move.
+
+Putting a runner on that machine is usually worse than the problem:
+
+- A **self-hosted runner** means a long-lived daemon on shared hardware, a
+  GitHub credential that can pick up jobs, and repository code executing on the
+  box.
+- **Uploading logs and artifacts** leaves the merge decision to a person
+  reading files in a browser tab.
+- **Skipping the check** turns the gate into a suggestion.
+
+outboard takes a fourth route. The check runs where it already runs and produces
+a small signed statement: this repository, this commit, this job, this result,
+this evidence digest. That statement is the only thing that travels. A hosted
+workflow verifies the signature over the exact bytes, checks the bindings, and
+publishes the verdict as a check run. The operator machine needs no inbound
+path and holds no GitHub credential.
+
+If no valid statement arrives, the result is `unverified` and the merge stays
+blocked. "Did not run" and "ran and failed" remain different states.
 
 ```
 operator host                          GitHub
