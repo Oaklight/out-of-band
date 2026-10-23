@@ -1,0 +1,214 @@
+name: self-test
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/**"
+      - ".github/selftest_allowed_signers"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  operator:
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.sign.outputs.commit }}
+      valid: ${{ steps.sign.outputs.valid }}
+      failing: ${{ steps.sign.outputs.failing }}
+      altered: ${{ steps.sign.outputs.altered }}
+      stranger: ${{ steps.sign.outputs.stranger }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install .
+
+      - name: Sign four receipts on the operator side
+        id: sign
+        env:
+          KEY: ${{ secrets.OUTBOARD_SELFTEST_KEY }}
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/key"
+          printf '%s\n' "$KEY" > "$key"
+          chmod 600 "$key"
+          ssh-keygen -q -t ed25519 -N "" -f "$RUNNER_TEMP/stranger"
+          mkdir -p "$RUNNER_TEMP/evidence"
+          printf 'self-test evidence\n' > "$RUNNER_TEMP/evidence/run.log"
+
+          sign_one() {
+            outboard sign --job selftest --commit "$COMMIT" --result "$1" \
+              --evidence-dir "$RUNNER_TEMP/evidence" --key "$2" \
+              --repo "$GITHUB_REPOSITORY"
+          }
+
+          valid="$(sign_one pass "$key")"
+          failing="$(sign_one fail "$key")"
+          stranger="$(sign_one pass "$RUNNER_TEMP/stranger")"
+          altered="$(printf '%s' "$valid" | sed 's/"repo":"[^"]*"/"repo":"forged\/repo"/')"
+
+          {
+            echo "commit=$COMMIT"
+            echo "valid<<__OB__"; echo "$valid"; echo "__OB__"
+            echo "failing<<__OB__"; echo "$failing"; echo "__OB__"
+            echo "altered<<__OB__"; echo "$altered"; echo "__OB__"
+            echo "stranger<<__OB__"; echo "$stranger"; echo "__OB__"
+          } >> "$GITHUB_OUTPUT"
+
+  verify-valid:
+    needs: operator
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: "0"
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest
+      check-name: outboard-selftest-valid
+      receipt: ${{ needs.operator.outputs.valid }}
+      allowed-signers: .github/selftest_allowed_signers
+
+  verify-fail:
+    needs: operator
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: "0"
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest
+      check-name: outboard-selftest-fail
+      receipt: ${{ needs.operator.outputs.failing }}
+      allowed-signers: .github/selftest_allowed_signers
+
+  verify-altered:
+    needs: operator
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: "0"
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest
+      check-name: outboard-selftest-altered
+      receipt: ${{ needs.operator.outputs.altered }}
+      allowed-signers: .github/selftest_allowed_signers
+
+  verify-stranger:
+    needs: operator
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: "0"
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest
+      check-name: outboard-selftest-stranger
+      receipt: ${{ needs.operator.outputs.stranger }}
+      allowed-signers: .github/selftest_allowed_signers
+
+  verify-not-required:
+    needs: operator
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: "0"
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest
+      required: false
+      check-name: outboard-selftest-not-required
+      receipt: ${{ needs.operator.outputs.altered }}
+      allowed-signers: .github/selftest_allowed_signers
+
+  comment:
+    needs: operator
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Post the valid receipt as a comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BODY: ${{ needs.operator.outputs.valid }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$BODY"
+
+  verify-comment:
+    needs: [operator, comment]
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: ${{ github.event.pull_request.number }}
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest
+      check-name: outboard-selftest-comment
+      allowed-signers: .github/selftest_allowed_signers
+      trusted-authors: "github-actions[bot]"
+
+  assert:
+    needs:
+      - verify-valid
+      - verify-fail
+      - verify-altered
+      - verify-stranger
+      - verify-not-required
+      - verify-comment
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every verdict must be the expected one
+        env:
+          VALID: ${{ needs.verify-valid.outputs.verdict }}
+          FAILING: ${{ needs.verify-fail.outputs.verdict }}
+          ALTERED: ${{ needs.verify-altered.outputs.verdict }}
+          STRANGER: ${{ needs.verify-stranger.outputs.verdict }}
+          NOT_REQUIRED: ${{ needs.verify-not-required.outputs.verdict }}
+          COMMENT: ${{ needs.verify-comment.outputs.verdict }}
+        run: |
+          status=0
+          check() {
+            if [ "$2" != "$3" ]; then
+              echo "FAIL $1: expected '$3', got '$2'"
+              status=1
+            else
+              echo "ok   $1: $2"
+            fi
+          }
+          check valid            "$VALID"        "verified"
+          check fail             "$FAILING"      "failed"
+          check altered          "$ALTERED"      "unverified"
+          check stranger         "$STRANGER"     "unverified"
+          check not-required     "$NOT_REQUIRED" "not applicable"
+          check comment          "$COMMENT"      "verified"
+          exit $status
