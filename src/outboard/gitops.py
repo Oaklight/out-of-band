@@ -32,8 +32,7 @@ def repo_root(cwd: Path | None = None) -> Path:
 def parse_repo_url(url: str) -> str:
     """Turn an SSH or HTTPS remote into owner/name."""
     value = url.strip()
-    if value.endswith(".git"):
-        value = value[:-4]
+    value = value.removesuffix(".git")
     if "://" in value:
         _, _, rest = value.partition("://")
         _, _, path = rest.partition("/")

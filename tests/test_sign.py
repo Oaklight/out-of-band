@@ -72,6 +72,7 @@ def test_block_shape_and_ssh_verification(
         ],
         input=payload.encode(),
         capture_output=True,
+        check=False,
     )
     assert proc.returncode == 0, proc.stderr.decode()
 
