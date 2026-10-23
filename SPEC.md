@@ -384,7 +384,10 @@ credential.
    `pull_request` event checks out the PR merge ref, which would let a PR
    supply its own `allowed_signers`. The file is never read from a PR
    checkout.
-2. Install `outboard` at an exact version pinned in the workflow file.
+2. Install `outboard` at an exact version pinned in the workflow file. Inside
+   the tool repository itself the workflow installs from the checked-out source
+   instead, so the self-test exercises unreleased code; consumers always get
+   the pinned release.
 3. The only repository file read besides the workflow itself is
    `allowed-signers`.
 4. Treat the receipt as data. Cap its size before parsing. Never interpolate it
