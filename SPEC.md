@@ -263,6 +263,10 @@ Stable strings, printed as `error: <CODE>: <message>` on stderr.
 | `E_BAD_ALLOWED_SIGNERS` | file missing, no keys, or a wildcard principal | 3 |
 | `E_TOO_MANY_COMMENTS` | more than 5000 comments to scan | 3 |
 | `E_KEY_IN_EVIDENCE` | signing key is inside the evidence directory | 3 |
+| `E_NOT_A_REPO` | `sign` was run outside a git repository | 3 |
+| `E_NO_REMOTE` | no `origin` remote and no `--repo` | 3 |
+| `E_UNKNOWN_COMMIT` | the commit does not exist locally | 3 |
+| `E_SIGN_FAILED` | `ssh-keygen` could not produce a signature | 3 |
 | `E_DIRTY_WORKTREE` | uncommitted changes without `--allow-dirty` | 3 |
 | `E_EVIDENCE_PATH` | a filename is not UTF-8 or contains LF, CR, or NUL | 3 |
 | `E_EVIDENCE_TYPE` | evidence contains a symlink or non-regular file | 3 |
