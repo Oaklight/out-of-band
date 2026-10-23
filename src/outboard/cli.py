@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import traceback
@@ -11,6 +12,7 @@ from pathlib import Path
 from . import __version__
 from .errors import EXIT_ERROR, OutboardError
 from .sign import sign
+from .verify import verify
 
 
 class _Parser(argparse.ArgumentParser):
@@ -44,7 +46,54 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sign_parser.add_argument("--allow-dirty", action="store_true")
     sign_parser.add_argument("--out", type=Path, help="write the block here instead of stdout")
+
+    verify_parser = sub.add_parser("verify", help="verify a receipt block")
+    verify_parser.add_argument("--block", required=True, help="file holding the comment or block")
+    verify_parser.add_argument("--allowed-signers", required=True)
+    verify_parser.add_argument("--repo", required=True, help="expected owner/name")
+    verify_parser.add_argument("--commit", required=True, help="expected 40-hex head")
+    verify_parser.add_argument("--expect-job", required=True)
+    verify_parser.add_argument("--expect-tree")
+    verify_parser.add_argument("--json", action="store_true", help="one machine-readable line")
     return parser
+
+
+def _verify_command(args: argparse.Namespace) -> int:
+    try:
+        result = verify(
+            block_path=args.block,
+            allowed_signers=args.allowed_signers,
+            repo=args.repo,
+            commit=args.commit,
+            job=args.expect_job,
+            tree=args.expect_tree,
+        )
+    except OutboardError as exc:
+        if args.json:
+            verdict = "unverified" if exc.exit_code == 2 else "error"
+            print(
+                json.dumps(
+                    {
+                        "verdict": verdict,
+                        "code": exc.code,
+                        "repo": None,
+                        "commit": None,
+                        "job": None,
+                    },
+                    separators=(",", ":"),
+                )
+            )
+        print(f"error: {exc.code}: {exc.message}", file=sys.stderr)
+        return exc.exit_code
+
+    if args.json:
+        print(json.dumps(result, separators=(",", ":")))
+    else:
+        print(f"receipt: {result['verdict']} (verified)")
+        print(f"repo: {result['repo']}")
+        print(f"commit: {result['commit']}")
+        print(f"job: {result['job']}")
+    return 0 if result["verdict"] == "pass" else 1
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -67,6 +116,8 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 sys.stdout.write(block)
             return 0
+        if args.command == "verify":
+            return _verify_command(args)
         raise OutboardError("E_USAGE", f"unknown command: {args.command}")
     except OutboardError as exc:
         print(f"error: {exc.code}: {exc.message}", file=sys.stderr)
