@@ -448,8 +448,8 @@ the merge stays blocked, which is the fail-closed result.
 ### 6.7 Sticky comment
 
 - One comment per PR, found by the marker `<!-- outboard:state -->` **and** an
-  author matching the token's own identity (`GET /user`; in Actions this is
-  `github-actions[bot]`), edited in place with
+  author matching `github-actions[bot]` (the Actions app; an installation token
+  cannot call `GET /user`), edited in place with
   `PATCH /repos/{owner}/{repo}/issues/comments/{id}`.
 - A foreign comment that carries the marker is ignored. It never causes a
   second sticky comment and is never edited.
