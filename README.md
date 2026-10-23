@@ -2,6 +2,18 @@
 
 Out-of-band receipts for CI gates.
 
+<p align="center">
+  <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/v/outboard?color=green" alt="PyPI"></a>
+  <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/pyversions/outboard?color=blue" alt="Python"></a>
+  <a href="https://github.com/Oaklight/outboard/releases/latest"><img src="https://img.shields.io/github/v/release/Oaklight/outboard?color=green" alt="Release"></a>
+  <a href="https://github.com/Oaklight/outboard/actions/workflows/ci.yml"><img src="https://github.com/Oaklight/outboard/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Apache-2.0"></a>
+</p>
+
+<p align="center">
+  <a href="README_en.md">English</a> | <a href="README_zh.md">中文</a>
+</p>
+
 ## Why this exists
 
 Picture a pull request that only one machine can really test. The code needs a
