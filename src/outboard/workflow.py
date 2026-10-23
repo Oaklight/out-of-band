@@ -18,6 +18,9 @@ from .block import MARKER, extract
 from .errors import EXIT_ERROR, OutboardError
 
 MAX_COMMENTS = 5000
+# Installation tokens cannot call GET /user; in Actions the comment author is
+# always the Actions app bot.
+BOT_LOGIN = "github-actions[bot]"
 STATE_MARKER = "<!-- outboard:state -->"
 
 
@@ -206,7 +209,7 @@ def publish() -> int:
 
     pr = (os.environ.get("PR") or "0").strip()
     if pr.isdigit() and int(pr) > 0:
-        login = _gh("api", "user", "--jq", ".login").strip()
+        login = BOT_LOGIN
         comments = _comments(repo, pr)
         existing = [
             comment
