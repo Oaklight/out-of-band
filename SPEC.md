@@ -439,14 +439,17 @@ credential.
   Untrusted comments are ignored whether or not they carry a marker, so anyone
   can post one without changing the verdict.
 - Among trusted markers, only blocks whose `commit` equals the input `commit`
-  are candidates. The field is read from the payload without trusting it, so a
-  forged claim can hide a block from the candidate set but never authenticate
-  one. A receipt for an earlier head is not evidence about this one: ignoring
-  it lets an operator post a fresh receipt without deleting the previous one.
+  and whose `job` equals the input `job` are candidates. Both fields are read
+  from the payload without trusting them, so a forged claim can hide a block
+  from the candidate set but never authenticate one. A receipt for an earlier
+  head is not evidence about this one: ignoring it lets an operator post a
+  fresh receipt without deleting the previous one. Filtering by job lets
+  several jobs attest the same commit without colliding.
 - If trusted markers exist but none names the expected commit, the receipt is
-  absent with `E_WRONG_COMMIT`. If none of them can be parsed at all, the
-  receipt is invalid with the parse error instead.
-- Blocks for the expected commit that disagree with each other are
+  absent with `E_WRONG_COMMIT`; if some name the commit but none names the
+  expected job, it is absent with `E_WRONG_JOB`. If none of them can be parsed
+  at all, the receipt is invalid with the parse error instead.
+- Blocks for the expected commit and job that disagree with each other are
   `E_MULTI_BLOCK`. Byte-identical blocks count as one.
 - Review comments and review bodies are not scanned. Only issue comments.
 - Scanning stops at 5000 comments. Beyond that, exit 3 with

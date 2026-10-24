@@ -76,6 +76,17 @@ def _is_trusted(comment: dict[str, Any], trusted: list[str]) -> bool:
     return comment.get("author_association") in {"OWNER", "MEMBER", "COLLABORATOR"}
 
 
+def _job_of(payload: bytes) -> str | None:
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(value, dict):
+        return None
+    job = value.get("job")
+    return job if isinstance(job, str) else None
+
+
 def _commit_of(payload: bytes) -> str | None:
     """The commit a block claims, read without trusting it.
 
@@ -161,6 +172,16 @@ def collect() -> int:
         code = first_error.code if not parsed and first_error is not None else "E_WRONG_COMMIT"
         _set_output(found="false", code=code, source="comments")
         return 0
+
+    # Several jobs can attest the same commit; a job only ever considers its
+    # own block, so one job's receipt cannot collide with another's.
+    expected_job = os.environ.get("JOB") or ""
+    if expected_job:
+        matching = [block for block in blocks if _job_of(block[0]) == expected_job]
+        if not matching:
+            _set_output(found="false", code="E_WRONG_JOB", source="comments")
+            return 0
+        blocks = matching
 
     if len({(payload, signature) for payload, signature, _ in blocks}) > 1:
         _set_output(found="false", code="E_MULTI_BLOCK", source="comments")

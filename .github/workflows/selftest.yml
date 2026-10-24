@@ -23,6 +23,7 @@ jobs:
       failing: ${{ steps.sign.outputs.failing }}
       altered: ${{ steps.sign.outputs.altered }}
       stranger: ${{ steps.sign.outputs.stranger }}
+      secondary: ${{ steps.sign.outputs.secondary }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -51,14 +52,17 @@ jobs:
           printf 'self-test evidence\n' > "$RUNNER_TEMP/evidence/run.log"
 
           sign_one() {
-            outboard sign --job selftest --commit "$COMMIT" --result "$1" \
+            outboard sign --job "$3" --commit "$COMMIT" --result "$1" \
               --evidence-dir "$RUNNER_TEMP/evidence" --key "$2" \
               --repo "$GITHUB_REPOSITORY"
           }
 
-          valid="$(sign_one pass "$key")"
-          failing="$(sign_one fail "$key")"
-          stranger="$(sign_one pass "$RUNNER_TEMP/stranger")"
+          valid="$(sign_one pass "$key" selftest)"
+          failing="$(sign_one fail "$key" selftest)"
+          stranger="$(sign_one pass "$RUNNER_TEMP/stranger" selftest)"
+          # A second job on the same commit: its receipt must not collide with
+          # the first when both are posted as comments.
+          secondary="$(sign_one pass "$key" selftest-secondary)"
           altered="$(printf '%s' "$valid" | sed 's/"repo":"[^"]*"/"repo":"forged\/repo"/')"
 
           {
@@ -67,6 +71,7 @@ jobs:
             echo "failing<<__OB__"; echo "$failing"; echo "__OB__"
             echo "altered<<__OB__"; echo "$altered"; echo "__OB__"
             echo "stranger<<__OB__"; echo "$stranger"; echo "__OB__"
+            echo "secondary<<__OB__"; echo "$secondary"; echo "__OB__"
           } >> "$GITHUB_OUTPUT"
 
   verify-valid:
@@ -157,6 +162,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BODY: ${{ needs.operator.outputs.valid }}
+          SECONDARY: ${{ needs.operator.outputs.secondary }}
           PR: ${{ github.event.pull_request.number }}
         run: |
           # A force-push leaves receipts for the old commit behind; two
@@ -166,6 +172,7 @@ jobs:
                      | select(.body | contains("<!-- receipt:v1 -->")) | .id' \
             | xargs -r -I{} gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/comments/{}"
           gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$BODY"
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$SECONDARY"
 
   verify-comment:
     needs: [operator, comment]
@@ -183,6 +190,38 @@ jobs:
       allowed-signers: .github/selftest_allowed_signers
       trusted-authors: "github-actions[bot]"
 
+  verify-comment-secondary:
+    needs: [operator, comment]
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: ${{ github.event.pull_request.number }}
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest-secondary
+      check-name: outboard-selftest-comment-secondary
+      allowed-signers: .github/selftest_allowed_signers
+      trusted-authors: "github-actions[bot]"
+
+  verify-comment-missing-job:
+    needs: [operator, comment]
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: ${{ github.event.pull_request.number }}
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest-missing
+      check-name: outboard-selftest-comment-missing-job
+      allowed-signers: .github/selftest_allowed_signers
+      trusted-authors: "github-actions[bot]"
+
   assert:
     needs:
       - verify-valid
@@ -191,6 +230,8 @@ jobs:
       - verify-stranger
       - verify-not-required
       - verify-comment
+      - verify-comment-secondary
+      - verify-comment-missing-job
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -202,6 +243,8 @@ jobs:
           STRANGER: ${{ needs.verify-stranger.outputs.verdict }}
           NOT_REQUIRED: ${{ needs.verify-not-required.outputs.verdict }}
           COMMENT: ${{ needs.verify-comment.outputs.verdict }}
+          COMMENT_SECONDARY: ${{ needs.verify-comment-secondary.outputs.verdict }}
+          COMMENT_MISSING_JOB: ${{ needs.verify-comment-missing-job.outputs.verdict }}
         run: |
           status=0
           check() {
@@ -218,4 +261,6 @@ jobs:
           check stranger         "$STRANGER"     "unverified"
           check not-required     "$NOT_REQUIRED" "not applicable"
           check comment          "$COMMENT"      "verified"
+          check comment-secondary "$COMMENT_SECONDARY" "verified"
+          check comment-missing-job "$COMMENT_MISSING_JOB" "unverified"
           exit $status
