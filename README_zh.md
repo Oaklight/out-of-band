@@ -111,6 +111,34 @@ oob verify --block block.md \
 
 ## 接到自己的仓库
 
+两种接法，验证逻辑相同：action 当 step 用，可复用 workflow 当一个 job 用。差别和输入见 [action 文档](docs/zh/action.md)。
+
+### action
+
+```yaml
+  verified:
+    needs: policy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: Oaklight/out-of-band@<full-sha> # v0.5.0
+        with:
+          pr: ${{ needs.policy.outputs.pr }}
+          commit: ${{ needs.policy.outputs.commit }}
+          job: smoke
+          required: ${{ needs.policy.outputs.requires }}
+          check-name: smoke-verified
+          trusted-authors: operator-login
+```
+
+`required` 传进来是字符串 `true` 或 `false`。action 自己声明不了
+`permissions`，得由 job 给。
+
+### 可复用 workflow
+
 ```yaml
 name: receipt gate
 
@@ -176,7 +204,7 @@ jobs:
 
 这里用 `pull_request_target` 而不是 `pull_request`：它跑默认分支上的那份 workflow，PR 改不了审判自己的门。它拿着写权限，fork PR 也一样，所以这个 workflow 里不要 checkout、不要执行 PR 代码。验证器只从默认分支读 `allowed_signers`，并把回执当数据。`policy` 通过 API 解析 head，这样评论触发的运行不会退回成 `github.sha`（那是基分支）。
 
-输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`；输出：`verdict`。
+输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`；输出：`verdict`。action 还多 `version`、`source`、`python-version`、`token` 四个输入。
 
 `uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.4.1`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
 

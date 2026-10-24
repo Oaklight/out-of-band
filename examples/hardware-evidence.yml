@@ -1,0 +1,45 @@
+# Verify a run that happened on a machine GitHub cannot reach.
+#
+# The operator runs the suite on the GPU host, packs the evidence, uploads the
+# bundle to an HTTPS location, and dispatches this workflow with the receipt
+# and the URL. This job runs on an ordinary GitHub runner; it never touches the
+# GPU host and never needs a runner installed there.
+
+name: hardware run (evidence)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number used for the summary comment; 0 disables it
+        required: false
+        default: "0"
+      commit:
+        description: Commit SHA the receipt names
+        required: true
+      receipt:
+        description: Signed receipt block, pasted in full
+        required: true
+        type: string
+      evidence_url:
+        description: HTTPS URL of the evidence .tar.gz
+        required: true
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: Oaklight/out-of-band@v0.5.0
+        with:
+          pr: ${{ inputs.pr }}
+          commit: ${{ inputs.commit }}
+          job: gpu-bench
+          receipt: ${{ inputs.receipt }}
+          evidence-url: ${{ inputs.evidence_url }}
+          check-name: gpu-receipt

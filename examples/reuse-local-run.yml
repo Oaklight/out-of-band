@@ -1,0 +1,61 @@
+# Reuse a run that already happened on a developer or operator machine.
+#
+# There is no test step here on purpose. The suite ran locally against this
+# commit, the operator signed the transcript, and the only thing CI does is
+# check the signature and publish the result. If the local run is current, CI
+# does not repeat it.
+
+name: receipt gate (reuse local run)
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  policy:
+    if: >
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '<!-- receipt:v1 -->'))
+    runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.context.outputs.pr }}
+      commit: ${{ steps.context.outputs.commit }}
+    steps:
+      - id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          if [ "$EVENT" = "pull_request_target" ]; then
+            commit="${{ github.event.pull_request.head.sha }}"
+          else
+            commit="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq .head.sha)"
+          fi
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+  verify:
+    needs: policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: Oaklight/out-of-band@v0.5.0
+        with:
+          pr: ${{ needs.policy.outputs.pr }}
+          commit: ${{ needs.policy.outputs.commit }}
+          job: local-suite
+          check-name: receipt-verified

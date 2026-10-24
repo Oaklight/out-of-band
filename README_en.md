@@ -135,6 +135,35 @@ and operations. Start there rather than from the input list below.
 
 ## Wiring a consumer
 
+Two forms, same verifier: the action runs as a step, the reusable workflow as a
+job. [The action page](docs/en/action.md) lists the inputs and the trade-offs.
+
+### The action
+
+```yaml
+  verified:
+    needs: policy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - uses: Oaklight/out-of-band@<full-sha> # v0.5.0
+        with:
+          pr: ${{ needs.policy.outputs.pr }}
+          commit: ${{ needs.policy.outputs.commit }}
+          job: smoke
+          required: ${{ needs.policy.outputs.requires }}
+          check-name: smoke-verified
+          trusted-authors: operator-login
+```
+
+`required` arrives as the string `true` or `false`. The action cannot declare
+`permissions`, so the job has to.
+
+### Reusable workflow
+
 ```yaml
 name: receipt gate
 
@@ -207,7 +236,9 @@ as data. The `policy` job resolves the head through the API so a comment on an
 issue does not fall back to `github.sha`, which is the base branch.
 
 Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
-`allowed-signers`, `trusted-authors`, `evidence-url`. Output: `verdict`.
+`allowed-signers`, `trusted-authors`, `evidence-url`. Output: `verdict`. The
+action takes the same inputs plus `version`, `source`, `python-version`, and
+`token`.
 
 Pin `uses:` by full commit SHA and keep the version in a comment
 (`# v0.4.1`); Dependabot can open the bump PR. A tag can be moved.

@@ -1,0 +1,44 @@
+# Verify a receipt supplied by hand, with no pull request comment involved.
+#
+# Useful when the repository does not accept comments from the operator, or
+# when a maintainer is re-running a gate deliberately. The operator pastes the
+# signed block and an optional evidence URL.
+
+name: receipt (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number used for the summary comment; 0 disables it
+        required: false
+        default: "0"
+      commit:
+        description: Commit SHA the receipt names
+        required: true
+      receipt:
+        description: Signed receipt block, pasted in full
+        required: true
+        type: string
+      evidence_url:
+        description: HTTPS URL of an evidence .tar.gz; empty checks the digest only
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Oaklight/out-of-band@v0.5.0
+        with:
+          pr: ${{ inputs.pr }}
+          commit: ${{ inputs.commit }}
+          job: bench-smoke
+          receipt: ${{ inputs.receipt }}
+          evidence-url: ${{ inputs.evidence_url }}
+          check-name: receipt-verified
