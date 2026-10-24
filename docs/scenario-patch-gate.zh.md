@@ -108,6 +108,23 @@ gh pr comment 5 --body-file receipt.md
 
 `--output-file` 可选，最多 4 KiB，会出现在 check 里可折叠的记录中，评审通常先看这里。别往里面放密钥；check 是公开的。
 
+## 需要你替换什么
+
+workflow 是模板，但真正要你定的只有三处，另有一处可选。`${{ }}` 里的表达式由 GitHub 在运行时求值，不用管。
+
+| 占位符 | 是什么 |
+| --- | --- |
+| `uses:` 里的 `<full-sha>` | 你要固定的 outboard commit，从 release 页面复制 |
+| `job:` | 必须和操作员的 `--job` 一致 |
+| `check-name:` | 分支保护匹配的字符串，所以每个 job 要唯一 |
+| `trusted-authors:` | 可选；你的 GitHub 登录名，或逗号分隔的列表 |
+
+如果直接抄这一页的调用方 workflow，其余地方都不用改。
+
+## 只写一次
+
+调用方 workflow 提交到默认分支一次就够了。之后每个 PR 需要的是回执，不是改 workflow：`policy` 会在运行时解析 head 和改动的路径。改固定的 SHA 是计划内的升级；加一个平台，就是加一个调用 job，也只加一次。
+
 ## 之后会发生什么
 
 评论会触发 workflow：回执里的标记正好命中 `policy` 的条件。验证方读取 PR 评论，只看有权限的作者，挑出 head commit 和 `patch-smoke` 对应的那一条，验签，然后发布 `patch-smoke-verified`。

@@ -118,6 +118,27 @@ gh pr comment 5 --body-file receipt.md
 foldable transcript, which is where a reviewer looks first. Do not put secrets
 there; the check is public.
 
+## What you replace
+
+The workflow is a template, but only a few things are yours to set. Everything
+inside `${{ }}` is evaluated by GitHub at run time; you do not fill it in.
+
+| Placeholder | What it is |
+| --- | --- |
+| `<full-sha>` in `uses:` | the outboard commit you pin; copy it from the release page |
+| `job:` | must equal the operator's `--job` |
+| `check-name:` | the string branch protection matches, so keep it unique per job |
+| `trusted-authors:` | optional; your GitHub login, or a comma-separated list |
+
+If you copy the caller workflow from this page, nothing else needs editing.
+
+## Write it once
+
+Commit the caller workflow to the default branch once. A new pull request needs
+a receipt, not a workflow change: `policy` resolves the head and the changed
+paths at run time. Changing the pinned SHA is an upgrade you schedule, and
+adding a platform means adding one caller job, once.
+
 ## What happens next
 
 The comment triggers the workflow, because the marker in the block matches the
