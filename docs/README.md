@@ -1,4 +1,4 @@
-# outboard documentation
+# out-of-band documentation
 
 - [English](en/README.md)
 - [中文](zh/README.md)

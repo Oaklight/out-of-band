@@ -2,11 +2,11 @@
 
 [English](../en/README.md) | [中文](README.md)
 
-有些任务没法在 GitHub 上跑：租来的 GPU 机器上的 benchmark、工作站上的补丁冒烟测试、实验室内网里的一次训练。outboard 让跑任务的机器签一份很短的声明，GitHub 负责验证，再把结论发布成 check run。
+有些任务没法在 GitHub 上跑：租来的 GPU 机器上的 benchmark、工作站上的补丁冒烟测试、实验室内网里的一次训练。out-of-band 让跑任务的机器签一份很短的声明，GitHub 负责验证，再把结论发布成 check run。测试在 CI 上能跑、但已经在别处跑过而且重跑又慢又不稳的情况，也归它管。
 
 下面按你手上的事来选。
 
-想先看一遍再读细节？[走一遍导览](https://oaklight.github.io/outboard/)。
+想先看一遍再读细节？[走一遍导览](https://oaklight.github.io/out-of-band/)。
 
 | 你的场景 | 读这篇 |
 | --- | --- |
@@ -27,7 +27,7 @@
 
 不管哪种场景，都是三件事。
 
-1. **回执。** 一行 JSON 加一段 SSH 签名。操作员在跑任务的机器上用 `outboard sign` 生成，不需要网络，也不需要 GitHub 凭据。
+1. **回执。** 一行 JSON 加一段 SSH 签名。操作员在跑任务的机器上用 `oob sign` 生成，不需要网络，也不需要 GitHub 凭据。
 2. **验证方。** 可复用 workflow 用默认分支上的 `allowed_signers` 验签，再核对仓库、commit、tree 和 job。
 3. **check run。** GitHub 把结论挂到 commit 上，分支保护按名字匹配。
 

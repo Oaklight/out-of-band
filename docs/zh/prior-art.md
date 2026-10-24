@@ -2,7 +2,7 @@
 
 [English](../en/prior-art.md) | [中文](prior-art.md)
 
-outboard 卡在一个很窄的位置。下面这些工具解决的是相邻问题，其中几个在条件满足时是更好的选择。
+out-of-band 卡在一个很窄的位置。下面这些工具解决的是相邻问题，其中几个在条件满足时是更好的选择。
 
 ## 机制本身不新
 
@@ -14,21 +14,21 @@ Jenkins、Buildkite、CircleCI 很多年前就能通过 commit status 和 Checks
 
 `actions/attest-build-provenance` 和 `gh attestation verify` 为 workflow 里构建的产物生成、校验 Sigstore 背书的 provenance。身份来自 workflow 的 OIDC token，attestation 存在 GitHub。
 
-任务确实在 Actions 里跑，这就是对的工具。HPC 登录节点、租来的 GPU 上没有这个身份，而那正是 outboard 要管的情况。
+任务确实在 Actions 里跑，这就是对的工具。HPC 登录节点、租来的 GPU 上没有这个身份，而那正是 out-of-band 要管的情况。
 
 ## Sigstore，keyless
 
 Keyless 签名从 Fulcio 拿一张短期证书，证书绑在 OIDC 身份上，签名再记进 Rekor。两者都要网络，也要有签发方。目标场景里的机器两样都没有。
 
-Sigstore 也可以用密钥离线签一个 blob，这部分是重叠的。它不提供的是 GitHub 这一侧的策略：哪把钥匙能代表这个仓库说话、声明覆盖哪个 commit 和哪份证据、什么能挡住合并。这层策略是 outboard 的主体。
+Sigstore 也可以用密钥离线签一个 blob，这部分是重叠的。它不提供的是 GitHub 这一侧的策略：哪把钥匙能代表这个仓库说话、声明覆盖哪个 commit 和哪份证据、什么能挡住合并。这层策略是 out-of-band 的主体。
 
-outboard 没有透明日志。长期记录是 PR 评论；除非上传证据包，证据留在操作员手里。
+out-of-band 没有透明日志。长期记录是 PR 评论；除非上传证据包，证据留在操作员手里。
 
 ## SLSA 与 provenance 框架
 
-SLSA 描述的是构建 provenance 和等级。回执是操作员的声明，不是构建者身份声明。outboard 不构成任何 SLSA 等级，也不假装构成。
+SLSA 描述的是构建 provenance 和等级。回执是操作员的声明，不是构建者身份声明。out-of-band 不构成任何 SLSA 等级，也不假装构成。
 
-in-toto 在精神上最接近：对供应链各步骤的签名声明，再用 layout 规定谁能证明什么。它表达力更强，但也需要 layout 和验证器。outboard 故意两样都不要。
+in-toto 在精神上最接近：对供应链各步骤的签名声明，再用 layout 规定谁能证明什么。它表达力更强，但也需要 layout 和验证器。out-of-band 故意两样都不要。
 
 ## 同一细分里的先例
 
@@ -46,4 +46,4 @@ in-toto 在精神上最接近：对供应链各步骤的签名声明，再用 la
 - 你需要透明日志或可验证的构建身份：Sigstore、in-toto 才是那一层。
 - 你需要的是“有人批准”，不是证据：review 或 environment 规则就够了。
 
-outboard 管的是剩下的那种：一个必需检查、任务跑在 GitHub 够不着的地方、那台机器上不能有凭据。
+out-of-band 管的是剩下的那种：一个必需检查、任务跑在 GitHub 够不着的地方、那台机器上不能有凭据。

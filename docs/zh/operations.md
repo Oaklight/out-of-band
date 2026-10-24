@@ -7,8 +7,8 @@
 ## 生成密钥
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/outboard -C "outboard operator"
-chmod 600 ~/.ssh/outboard
+ssh-keygen -t ed25519 -f ~/.ssh/out-of-band -C "out-of-band operator"
+chmod 600 ~/.ssh/out-of-band
 ```
 
 `ssh-keygen -Y sign` 直接读密钥文件，不走 `ssh-agent`。设了口令就要交互输入：人坐在机器前没问题，无人值守的 job 里做不到。要么用不带口令的密钥、保证 `0600` 且机器只有操作员能登录，要么在有人值守时签名。
@@ -16,7 +16,7 @@ chmod 600 ~/.ssh/outboard
 公钥写进默认分支的 `.github/allowed_signers`：
 
 ```
-operator ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... outboard operator
+operator ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... out-of-band operator
 ```
 
 密钥前面那个 principal 是自己起的标签，和 GitHub 账号没有关系。
@@ -41,7 +41,7 @@ operator ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... outboard operator
 
 ## 发布与固定版本
 
-调用方用 `uses: Oaklight/outboard/.github/workflows/verify.yml@<sha>` 固定 workflow。workflow 自己从调用方仓库读 `allowed_signers`，所以这个 pin 决定跑哪份验证代码，不决定信任哪些钥匙。
+调用方用 `uses: Oaklight/out-of-band/.github/workflows/verify.yml@<sha>` 固定 workflow。workflow 自己从调用方仓库读 `allowed_signers`，所以这个 pin 决定跑哪份验证代码，不决定信任哪些钥匙。
 
 新版本改了 schema 或 CLI 时，照常发布，用经过评审的 PR 更新 pin，并让旧版本至少再活一个 release。v2 验证器仍然能读 v1 回执。
 
@@ -67,7 +67,7 @@ operator ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... outboard operator
 本地复现：
 
 ```bash
-outboard verify \
+oob verify \
   --block receipt.md \
   --allowed-signers .github/allowed_signers \
   --repo owner/repo \
@@ -86,7 +86,7 @@ outboard verify \
 ## 证据相关的问题
 
 - 地址要 runner 能访问，且不需要浏览器会话。私有对象存储给签名 URL。
-- 包必须是 `outboard pack` 生成的 `.tar.gz`，或布局一致：没有绝对路径、没有 `..`、没有链接、没有特殊文件。
+- 包必须是 `oob pack` 生成的 `.tar.gz`，或布局一致：没有绝对路径、没有 `..`、没有链接、没有特殊文件。
 - digest 覆盖路径和文件内容，不是压缩包字节。重新打包没关系，改文件就有关系。
 - 超过 50 MiB 在解压前就会被拒。
 - 证据检查失败会把原本通过的回执变成 `E_EVIDENCE_MISMATCH` 和 `action_required`，不会退化成"只看 digest"。

@@ -1,12 +1,11 @@
-<h1 align="center">outboard</h1>
+<h1 align="center">out-of-band</h1>
 
 <p align="center">在 GitHub 够不到的地方跑检查，用签名回执卡住合并。</p>
 
 <p align="center">
-  <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/v/outboard?color=green" alt="PyPI"></a>
-  <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/pyversions/outboard?color=blue" alt="Python"></a>
-  <a href="https://github.com/Oaklight/outboard/releases/latest"><img src="https://img.shields.io/github/v/release/Oaklight/outboard?color=green" alt="Release"></a>
-  <a href="https://github.com/Oaklight/outboard/actions/workflows/ci.yml"><img src="https://github.com/Oaklight/outboard/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/out-of-band/"><img src="https://img.shields.io/pypi/v/out-of-band?color=green" alt="PyPI"></a>
+  <a href="https://github.com/Oaklight/out-of-band/releases/latest"><img src="https://img.shields.io/github/v/release/Oaklight/out-of-band?color=green" alt="Release"></a>
+  <a href="https://github.com/Oaklight/out-of-band/actions/workflows/ci.yml"><img src="https://github.com/Oaklight/out-of-band/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Apache-2.0"></a>
 </p>
 
@@ -15,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://oaklight.github.io/outboard/"><strong>先看一遍导览 →</strong></a>
+  <a href="https://oaklight.github.io/out-of-band/"><strong>先看一遍导览 →</strong></a>
 </p>
 
 ## 为什么需要它
@@ -28,7 +27,9 @@
 - 上传日志和产物，最后变成有人在浏览器里翻文件来决定能不能合并。
 - 干脆跳过检查，门禁就成了摆设。
 
-outboard 换个做法：检查留在原地，跑完只生成一小段签名记录，写明仓库、commit、job、结果和证据摘要。离开这台机器的只有这段记录。GitHub 那边的 workflow 会对原始字节验签、核对绑定关系，再把结论发成 check run。操作员机器不用开入站端口，也不用存 GitHub 凭据。
+out-of-band 换个做法：检查留在原地，跑完只生成一小段签名记录，写明仓库、commit、job、结果和证据摘要。离开这台机器的只有这段记录。GitHub 那边的 workflow 会对原始字节验签、核对绑定关系，再把结论发成 check run。操作员机器不用开入站端口，也不用存 GitHub 凭据。
+
+还有一种情况，一点也不特殊：测试在 CI 上也能跑，但你已经跑过了。重跑可能比写这次改动还久，可能因为本地没出现的环境问题失败，也可能得到一个略有差别的数字。签名回执让门禁直接采用你手上这次结果。
 
 没有有效记录，结论就是 `unverified`，合并继续被挡住。“没跑”和“跑了但失败”始终分开。
 
@@ -60,7 +61,7 @@ check ──► evidence ──► sign            PR comment / dispatch
 ## 安装
 
 ```bash
-pip install outboard
+pip install out-of-band
 ```
 
 需要 Python 3.11+ 和 OpenSSH 8.0+（`ssh-keygen -Y sign`），没有运行时依赖。
@@ -70,7 +71,7 @@ pip install outboard
 密钥在操作员机器上生成，私钥不出这台机器。
 
 ```bash
-ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/outboard
+ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/out-of-band
 ```
 
 把公钥提交到使用方仓库的 `.github/allowed_signers`：
@@ -82,12 +83,12 @@ operator ssh-ed25519 AAAA...
 给某个 commit 签结果。`--commit` 必须是完整的 SHA，本地仓库里得存在；tree 从 commit 读，不看工作区。
 
 ```bash
-outboard sign \
+oob sign \
   --job smoke \
   --commit "$(git rev-parse HEAD)" \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --output-file ./check-output.txt
 ```
 
@@ -99,7 +100,7 @@ outboard sign \
 发出去之前先本地验一遍：
 
 ```bash
-outboard verify --block block.md \
+oob verify --block block.md \
   --allowed-signers .github/allowed_signers \
   --repo owner/name --commit "$SHA" --expect-job smoke
 ```
@@ -161,7 +162,7 @@ jobs:
 
   verified:
     needs: policy
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha> # v0.3.0
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.0
     with:
       pr: ${{ needs.policy.outputs.pr }}
       commit: ${{ needs.policy.outputs.commit }}
@@ -177,18 +178,18 @@ jobs:
 
 输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`；输出：`verdict`。
 
-`uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.3.0`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
+`uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.4.0`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
 
 ### 上传证据
 
 `evidence-url` 留空就维持现状：回执只绑定摘要，不上传任何东西。
 
-把它设成 `outboard pack` 生成的包的 HTTPS 地址，workflow 会下载、安全解包、
-重算摘要并比对，一致才作为 `outboard-evidence` artifact 上传；对不上则判为
+把它设成 `oob pack` 生成的包的 HTTPS 地址，workflow 会下载、安全解包、
+重算摘要并比对，一致才作为 `oob-evidence` artifact 上传；对不上则判为
 unverified。
 
 ```bash
-outboard pack --evidence-dir ./evidence --out evidence.tgz
+oob pack --evidence-dir ./evidence --out evidence.tgz
 ```
 
 ### 回执从哪来
@@ -208,7 +209,7 @@ outboard pack --evidence-dir ./evidence --out evidence.tgz
 
 ### 离线操作员机器
 
-签名机可以完全没有外网。用 Release 附带的单文件 `outboard.pyz`（或 wheel）运行，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/zh/offline.md)。
+签名机可以完全没有外网。用 Release 附带的单文件 `oob.pyz`（或 wheel）运行，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/zh/offline.md)。
 
 ### 保留期
 
@@ -219,6 +220,12 @@ check 和 workflow run 跟着 Actions 的保留期走（默认 90 天，公开�
 它能说明：某个登记过公钥的人用对应的私钥签了这些字节，绑定了一个仓库、commit、tree、job 和证据摘要。
 
 它不能说明 job 跑得对不对、证据和摘要是否一致、机器有没有被入侵。这是一份签名声明，不是正确性证明。详见 [SPEC.md](SPEC.md) 第 8 节。
+
+## 关于名字
+
+out-of-band 说的是检查发生在常规 CI 路径之外。GitHub 仍然收到结果，但任务和签名在别处完成：实验室的机器、HPC 登录节点、租来的 GPU。回来的只有一份签名回执。
+
+命令是 `oob`，就是这几个词的缩写；包名和仓库用全称 `out-of-band`。
 
 ## 开发
 

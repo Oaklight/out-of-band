@@ -25,10 +25,10 @@ class _Parser(argparse.ArgumentParser):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = _Parser(
-        prog="outboard",
+        prog="oob",
         description="Out-of-band receipts for CI gates.",
     )
-    parser.add_argument("--version", action="version", version=f"outboard {__version__}")
+    parser.add_argument("--version", action="version", version=f"oob {__version__}")
     sub = parser.add_subparsers(dest="command", required=True, parser_class=_Parser)
 
     sign_parser = sub.add_parser("sign", help="sign a receipt for one commit")
@@ -141,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc.code}: {exc.message}", file=sys.stderr)
         return exc.exit_code
     except Exception as exc:  # noqa: BLE001 - the CLI must not leak a traceback by default
-        if os.environ.get("OUTBOARD_DEBUG"):
+        if os.environ.get("OOB_DEBUG"):
             traceback.print_exc()
         print(f"error: E_INTERNAL: {exc}", file=sys.stderr)
         return EXIT_ERROR

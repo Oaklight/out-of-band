@@ -11,7 +11,7 @@
     const asked = new URLSearchParams(location.search).get("lang");
     if (asked === "en" || asked === "zh") return asked;
     try {
-      const saved = localStorage.getItem("outboard-lang");
+      const saved = localStorage.getItem("oob-lang");
       if (saved === "en" || saved === "zh") return saved;
     } catch (_) {
       /* storage can be unavailable; fall through */
@@ -25,7 +25,7 @@
 
   function saveLang() {
     try {
-      localStorage.setItem("outboard-lang", state.lang);
+      localStorage.setItem("oob-lang", state.lang);
     } catch (_) {
       /* a private window will just forget it */
     }
@@ -63,7 +63,7 @@
       if (UI[state.lang][key] !== undefined) n.textContent = UI[state.lang][key];
     });
     document.title =
-      state.lang === "zh" ? "outboard — 带外回执导览" : "outboard — a guided tour";
+      state.lang === "zh" ? "out-of-band — 带外回执导览" : "out-of-band — a guided tour";
 
     const langBtn = document.getElementById("lang");
     langBtn.textContent = state.lang === "zh" ? "English" : "中文";

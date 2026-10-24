@@ -11,7 +11,7 @@ const UI = {
     lede:
       "A job runs on hardware GitHub cannot reach. The machine signs one line of JSON. GitHub verifies the signature and turns the verdict into a check run. No inbound access, and no GitHub credential on the machine.",
     simulation:
-      "This page is a simulation. The navigation is real; the pull request is not.",
+      "This page is a simulation: the pull request and its checks are mock-ups.",
     tourTitle: "Follow one receipt from a pull request to a green check",
     tourLede:
       "Pick a scenario, then step through it. The left pane is what GitHub sees; the right pane is what happens on the machine you control.",
@@ -25,14 +25,14 @@ const UI = {
       "The tour covers three. These are the rest, with the full procedures in the repository.",
     statesTitle: "Four states, never collapsed",
     statesLede:
-      "A gate that turns “I could not tell” into “pass” is worse than no gate. These stay separate.",
+      "Turning “I could not tell” into “pass” is worse than having no gate, so these states stay separate.",
     adoptTitle: "Adopting it for real",
     adoptLede:
       "Five steps, in order. The guides in docs/ carry the exact commands.",
     adoptNote:
       "You write the workflow once. A new pull request needs a receipt, not a workflow edit. Changing the pinned SHA is an upgrade you choose, not part of every PR.",
-    limitsTitle: "What “GitHub can't run it” actually means",
-    limitsLede: "Usually one of these four.",
+    limitsTitle: "When GitHub does not run the test",
+    limitsLede: "Usually one of these.",
     limits: [
       {
         title: "No runner has the hardware",
@@ -50,13 +50,16 @@ const UI = {
         title: "It is not a CI machine",
         text: "An hourly rental, or a login node with a scheduler. A runner there is disproportionate or forbidden.",
       },
+      {
+        title: "You already ran it",
+        text: "Re-running on a runner is slow, flaky, or gives a different number. Sign the run you have.",
+      },
     ],
     faqTitle: "Why not just…",
-    faqLede: "These alternatives all have a place. Here is where each one stops.",
     faq: [
       {
         q: "…run a self-hosted runner on that machine?",
-        a: "The right answer when the machine can reach GitHub and you control what runs on it. It needs persistent outbound access, and it executes workflow code from the repository, which is a serious attack surface for a public repo. Ephemeral GPUs and scheduler-managed login nodes rarely fit. If it fits, use it; outboard is for when it does not.",
+        a: "The right answer when the machine can reach GitHub and you control what runs on it. It needs persistent outbound access, and it executes workflow code from the repository, which is a serious attack surface for a public repo. Ephemeral GPUs and scheduler-managed login nodes rarely fit. If it fits, use it. This tool is for when it does not.",
       },
       {
         q: "…put a GitHub token on the machine and post a status?",
@@ -64,7 +67,7 @@ const UI = {
       },
       {
         q: "…just run the test in CI?",
-        a: "If a hosted runner can run it, do that. Outboard is a fallback, not a default.",
+        a: "If a hosted runner can run it, do that. Out-of-band is the fallback.",
       },
       {
         q: "…approve it by hand with a comment?",
@@ -76,11 +79,11 @@ const UI = {
       },
       {
         q: "…use Sigstore or GitHub's artifact attestations?",
-        a: "Use them when the job runs in Actions: the workflow's OIDC identity is what signs. A machine outside Actions has no such identity, and keyless signing needs Fulcio and Rekor. Sigstore can sign a blob offline with a key, but the GitHub-side gate — who may sign, for which commit, over what evidence — is still yours to build. That gate is what outboard is.",
+        a: "Use them when the job runs in Actions: the workflow's OIDC identity is what signs. A machine outside Actions has no such identity, and keyless signing needs Fulcio and Rekor. Sigstore can sign a blob offline with a key, but the GitHub-side gate is still yours to build: who may sign, for which commit, and over what evidence. Out-of-band is that gate.",
       },
       {
         q: "…use Jenkins?",
-        a: "Fine if you have it and it can reach GitHub. It still needs a credential and a network path, and its result is a status like any other. Outboard covers the case where neither is available.",
+        a: "Fine if you have it and it can reach GitHub. It still needs a credential and a network path, and its result is a status like any other. Out-of-band covers the case where neither is available.",
       },
     ],
     footerDocs: "Docs",
@@ -102,7 +105,7 @@ const UI = {
         tag: "you control it",
         items: [
           "the private key",
-          "outboard sign / verify",
+          "oob sign / verify",
           "no GitHub credential",
         ],
         flow: "signs bytes · never opens a socket",
@@ -128,7 +131,7 @@ const UI = {
     title: "GitHub 跑不了的测试，也能证明它跑过。",
     lede:
       "任务跑在 GitHub 够不着的机器上。机器对一行 JSON 签名，GitHub 验签，再把结论变成 check run。不需要入站访问，机器上也不需要 GitHub 凭据。",
-    simulation: "这一页是模拟的。导航是真的，PR 是假的。",
+    simulation: "这一页是模拟的：PR 和 check 都是假的。",
     tourTitle: "跟着一份回执，从 PR 走到绿色的 check",
     tourLede:
       "先选一个场景，再一步步走。左边是 GitHub 看到的东西，右边是你控制的机器上发生的事。",
@@ -141,13 +144,13 @@ const UI = {
     variantsLede: "导览覆盖了三种。这里是剩下的，完整步骤在仓库的文档里。",
     statesTitle: "四种状态，别混为一谈",
     statesLede:
-      "把“判断不了”说成“通过”的门禁，比没有门禁更糟。这几种状态始终分开。",
+      "把“判断不了”说成“通过”，比没有门禁更糟，所以这几种状态始终分开。",
     adoptTitle: "真的要用起来",
     adoptLede: "五步，按顺序来。具体命令在 docs/ 里。",
     adoptNote:
       "workflow 只写一次。之后每个 PR 需要的是回执，不是改 workflow。改固定的 SHA 是一次你主动决定的小升级，不是每个 PR 的例行公事。",
-    limitsTitle: "所谓“GitHub 跑不了”，具体指什么",
-    limitsLede: "通常就是下面四种之一。",
+    limitsTitle: "什么情况下 GitHub 不跑这个测试",
+    limitsLede: "通常是下面几种情况之一。",
     limits: [
       {
         title: "没有 runner 具备那套硬件",
@@ -165,13 +168,16 @@ const UI = {
         title: "它根本不是 CI 机器",
         text: "按小时租的卡，或者带调度器的登录节点。在上面装 runner 要么小题大做，要么不被允许。",
       },
+      {
+        title: "你已经跑过了",
+        text: "放到 runner 上重跑，可能更慢、更不稳定，数字也可能不一样。直接签手上这次。",
+      },
     ],
     faqTitle: "那为什么不直接用……",
-    faqLede: "这些替代方案各有适用的时候。下面说它们各自卡在哪。",
     faq: [
       {
         q: "……在那台机器上跑 self-hosted runner？",
-        a: "机器能连 GitHub、你也管得住上面跑什么，这就是正解。但它要求持续的出网连接，而且会执行仓库里的 workflow 代码；对公开仓库来说，这是实打实的攻击面。按小时租的 GPU、带调度器的登录节点，通常不合适。合适就用；outboard 管的是不合适的那种。",
+        a: "机器能连 GitHub、你也管得住上面跑什么，这就是正解。但它要求持续的出网连接，而且会执行仓库里的 workflow 代码；对公开仓库来说，这是实打实的攻击面。按小时租的 GPU、带调度器的登录节点，通常不合适。合适就用；out-of-band 管的是不合适的那种。",
       },
       {
         q: "……在机器上放一个 GitHub token，直接发 status？",
@@ -179,7 +185,7 @@ const UI = {
       },
       {
         q: "……直接在 CI 里跑？",
-        a: "托管 runner 跑得了，就该在 CI 里跑。outboard 是退路，不是默认。",
+        a: "托管 runner 跑得了、也不贵，就该在 CI 里跑。out-of-band 也管另一种情况：结果已经在手上，重跑又慢又不稳。",
       },
       {
         q: "……人工评论一句批准？",
@@ -191,11 +197,11 @@ const UI = {
       },
       {
         q: "……用 Sigstore 或 GitHub 的 artifact attestation？",
-        a: "任务在 Actions 里跑，就用它们：签名用的是 workflow 的 OIDC 身份。Actions 之外的机器没有这个身份，keyless 签名还要连 Fulcio 和 Rekor。Sigstore 可以用密钥离线签一个 blob，但 GitHub 这一侧的门禁——谁能签、签哪个 commit、覆盖哪份证据——还是得自己搭。outboard 就是这道门。",
+        a: "任务在 Actions 里跑，就用它们：签名用的是 workflow 的 OIDC 身份。Actions 之外的机器没有这个身份，keyless 签名还要连 Fulcio 和 Rekor。Sigstore 可以用密钥离线签一个 blob，但 GitHub 这一侧的门禁还是得自己搭：谁能签、签哪个 commit、覆盖哪份证据。out-of-band 做的就是这道门。",
       },
       {
         q: "……用 Jenkins？",
-        a: "有 Jenkins、它又能连 GitHub，那就用。但它同样需要凭据和一条网络通路，结果也只是个 status。两者都没有的时候，才轮到 outboard。",
+        a: "有 Jenkins、它又能连 GitHub，那就用。但它同样需要凭据和一条网络通路，结果也只是个 status。两者都没有的时候，才轮到 out-of-band。",
       },
     ],
     footerDocs: "文档",
@@ -215,7 +221,7 @@ const UI = {
       {
         title: "操作员机器",
         tag: "你控制它",
-        items: ["私钥", "outboard sign / verify", "不需要 GitHub 凭据"],
+        items: ["私钥", "oob sign / verify", "不需要 GitHub 凭据"],
         flow: "对字节签名 · 不开 socket",
       },
       {
@@ -244,12 +250,12 @@ const SCENARIOS = [
       {
         nav: { en: "A PR CI can't test", zh: "CI 测不了的 PR" },
         title: {
-          en: "The rule is about a path, not a person.",
-          zh: "规则针对路径，不针对某个人。",
+          en: "The rule is about a path, not an identity.",
+          zh: "规则看的是路径，不是身份。",
         },
         body: {
-          en: "A change under <code>patches/</code> needs a device test. The hosted runner cannot provide the device, so branch protection waits on a check that only a person can satisfy. The rest of this tour makes that check worth trusting.",
-          zh: "<code>patches/</code> 下的改动要在设备上测。托管的 runner 给不了设备，于是分支保护在等一个只有人才能满足的 check。后面几步要做的，就是让这个 check 值得信任。",
+          en: "A change under <code>patches/</code> needs a device test. The hosted runner cannot provide the device, so branch protection waits on a check the hosted runner cannot produce. The rest of this tour makes that check worth trusting.",
+          zh: "<code>patches/</code> 下的改动要在设备上测。托管的 runner 给不了设备，于是分支保护在等一个只能从外部来的 check。后面几步要做的，就是让这个 check 值得信任。",
         },
         github: [
           { t: "event", text: "pull_request_target · synchronize" },
@@ -334,7 +340,7 @@ const SCENARIOS = [
               "        run: gh api .../pulls/$PR/files\n" +
               "  verified:\n" +
               "    needs: policy\n" +
-              "    uses: Oaklight/outboard/.github/workflows/verify.yml@<sha>\n" +
+              "    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<sha>\n" +
               "    with:\n" +
               "      pr:         ${{ needs.policy.outputs.pr }}\n" +
               "      commit:     ${{ needs.policy.outputs.commit }}\n" +
@@ -348,8 +354,8 @@ const SCENARIOS = [
               {
                 k: "<sha>",
                 v: {
-                  en: "the outboard commit you pin; copy it from the release page",
-                  zh: "你要固定的 outboard commit，从 release 页面复制",
+                  en: "the commit of the out-of-band repository that you pin; copy it from the release page",
+                  zh: "你要固定的 out-of-band 仓库 commit，从 release 页面复制",
                 },
               },
               {
@@ -461,8 +467,8 @@ const SCENARIOS = [
           zh: "一条命令，把目录变成一份声明。",
         },
         body: {
-          en: "<code>outboard sign</code> hashes every file, hashes the sorted file list, reads the commit's tree from the local repository, and signs one line of JSON with your SSH key. It opens no socket.",
-          zh: "<code>outboard sign</code> 逐个文件算哈希，再对排好序的文件清单算一次，从本地仓库读出 commit 的 tree，最后用 SSH 私钥对一行 JSON 签名。它不开任何 socket。",
+          en: "<code>oob sign</code> hashes every file, hashes the sorted file list, reads the commit's tree from the local repository, and signs one line of JSON with your SSH key. It opens no socket.",
+          zh: "<code>oob sign</code> 逐个文件算哈希，再对排好序的文件清单算一次，从本地仓库读出 commit 的 tree，最后用 SSH 私钥对一行 JSON 签名。它不开任何 socket。",
         },
         github: [
           {
@@ -475,10 +481,10 @@ const SCENARIOS = [
             t: "term",
             title: { en: "Same machine, still offline", zh: "同一台机器，仍然离线" },
             lines: [
-              { k: "cmd", text: "$ outboard sign --job patch-smoke \\" },
+              { k: "cmd", text: "$ oob sign --job patch-smoke \\" },
               { k: "cmd", text: "    --commit 6e5b8a4 --result pass \\" },
               { k: "cmd", text: "    --evidence-dir ~/runs/5/evidence \\" },
-              { k: "cmd", text: "    --key ~/.ssh/outboard --repo you/repo \\" },
+              { k: "cmd", text: "    --key ~/.ssh/out-of-band --repo you/repo \\" },
               { k: "cmd", text: "    --output-file ~/runs/5/summary.txt \\" },
               { k: "cmd", text: "    --out receipt.md" },
               { k: "ok", text: "wrote receipt.md" },
@@ -492,7 +498,7 @@ const SCENARIOS = [
               "```json\n" +
               '{"schema":"receipt/v2","repo":"you/repo","commit":"6e5b8a4...",\n' +
               ' "tree":"f0c1...","job":"patch-smoke","result":"pass",\n' +
-              ' "issued_at":"2026-10-23T21:40:00Z","tool":"outboard/0.3.0",\n' +
+              ' "issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.0",\n' +
               ' "evidence":{"count":1,"digest":"sha256:7b6f..."},\n' +
               ' "output":"[ok] driver 550.54\\n[ok] patch applies cleanly\\n..."}\n' +
               "```\n" +
@@ -607,7 +613,7 @@ const SCENARIOS = [
           },
           {
             t: "summary",
-            title: "outboard: verified",
+            title: "oob: verified",
             body:
               "job: patch-smoke\n" +
               "commit: 6e5b8a482f1baf41c8080b79501294cbf4057987\n" +
@@ -662,8 +668,8 @@ const SCENARIOS = [
           zh: "有些结果属于 commit，不属于 PR。",
         },
         body: {
-          en: "A benchmark finished on a rented V100. There is no pull request; the commit is on main. Check runs attach to commits, so the target is the SHA you actually tested — not a branch, not a tag, not “latest”.",
-          zh: "在租来的 V100 上跑完了一次 benchmark。没有 PR，commit 在 main 上。check run 挂在 commit 上，所以对象是你实际测过的那个 SHA——不是分支，不是 tag，也不是“最新”。",
+          en: "A benchmark finished on a rented V100. There is no pull request; the commit is on main. Check runs attach to commits, so the target is the SHA you actually tested, not a branch, tag, or “latest”.",
+          zh: "在租来的 V100 上跑完了一次 benchmark。没有 PR，commit 在 main 上。check run 挂在 commit 上，所以对象是你实际测过的那个 SHA，不是分支、tag 或“最新”。",
         },
         github: [
           { t: "event", text: "commit 6e5b8a4 · main" },
@@ -730,7 +736,7 @@ const SCENARIOS = [
               "\n" +
               "jobs:\n" +
               "  verified:\n" +
-              "    uses: Oaklight/outboard/.github/workflows/verify.yml@<sha>\n" +
+              "    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<sha>\n" +
               "    with:\n" +
               '      pr: "0"\n' +
               "      commit: ${{ inputs.commit }}\n" +
@@ -774,13 +780,13 @@ const SCENARIOS = [
             t: "term",
             title: { en: "On the GPU box", zh: "GPU 机器上" },
             lines: [
-              { k: "cmd", text: "$ outboard sign --job v100-bench \\" },
+              { k: "cmd", text: "$ oob sign --job v100-bench \\" },
               { k: "cmd", text: "    --commit 6e5b8a4 --result pass \\" },
               { k: "cmd", text: "    --evidence-dir results \\" },
-              { k: "cmd", text: "    --key ~/.ssh/outboard \\" },
+              { k: "cmd", text: "    --key ~/.ssh/out-of-band \\" },
               { k: "cmd", text: "    --repo you/repo --output-file summary.txt \\" },
               { k: "cmd", text: "    --out receipt.md" },
-              { k: "cmd", text: "$ outboard pack --evidence-dir results \\" },
+              { k: "cmd", text: "$ oob pack --evidence-dir results \\" },
               { k: "cmd", text: "    --out evidence.tgz" },
               { k: "ok", text: "wrote receipt.md, evidence.tgz" },
             ],
@@ -913,7 +919,7 @@ const SCENARIOS = [
           },
           {
             t: "summary",
-            title: "outboard: verified",
+            title: "oob: verified",
             body:
               "job: v100-bench\n" +
               "commit: 6e5b8a48...\n" +
@@ -926,7 +932,7 @@ const SCENARIOS = [
           },
           {
             t: "artifact",
-            text: { en: "outboard-evidence · 349 B", zh: "outboard-evidence · 349 B" },
+            text: { en: "oob-evidence · 349 B", zh: "oob-evidence · 349 B" },
           },
         ],
         machine: [
@@ -966,7 +972,7 @@ const SCENARIOS = [
         },
         body: {
           en: "A smoke test on a V100 and a benchmark on an A100. One is required; the other is optional, because hardware is not always available. Both bind the same commit, and neither can stand in for the other.",
-          zh: "V100 上的冒烟测试，A100 上的 benchmark。一个必需，一个可选——硬件不一定随时可用。两者绑定同一个 commit，但谁也不能代替谁。",
+          zh: "V100 上的冒烟测试，A100 上的 benchmark。一个必需，一个可选，因为硬件不一定随时可用。两者绑定同一个 commit，但谁也不能代替谁。",
         },
         github: [
           { t: "event", text: "pull_request · opened" },
@@ -1017,7 +1023,7 @@ const SCENARIOS = [
             text:
               "jobs:\n" +
               "  v100:\n" +
-              "    uses: Oaklight/outboard/.github/workflows/verify.yml@<sha>\n" +
+              "    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<sha>\n" +
               "    with:\n" +
               "      pr: ${{ github.event.pull_request.number }}\n" +
               "      commit: ${{ github.event.pull_request.head.sha }}\n" +
@@ -1025,7 +1031,7 @@ const SCENARIOS = [
               "      check-name: v100-smoke-verified\n" +
               "\n" +
               "  a100:\n" +
-              "    uses: Oaklight/outboard/.github/workflows/verify.yml@<sha>\n" +
+              "    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<sha>\n" +
               "    with:\n" +
               "      pr: ${{ github.event.pull_request.number }}\n" +
               "      commit: ${{ github.event.pull_request.head.sha }}\n" +
@@ -1074,8 +1080,8 @@ const SCENARIOS = [
             t: "term",
             title: { en: "Two machines", zh: "两台机器" },
             lines: [
-              { k: "cmd", text: "$ outboard sign --job v100-smoke ... --out v100.md" },
-              { k: "cmd", text: "$ outboard sign --job a100-bench ... --out a100.md" },
+              { k: "cmd", text: "$ oob sign --job v100-smoke ... --out v100.md" },
+              { k: "cmd", text: "$ oob sign --job a100-bench ... --out a100.md" },
               { k: "ok", text: "each block names its own job" },
             ],
           },
@@ -1161,11 +1167,11 @@ const VARIANTS = [
   {
     title: { en: "Branch gate", zh: "分支门禁" },
     text: {
-      en: "Attest a push when no pull request exists — and see honestly what can and cannot be enforced.",
-      zh: "没有 PR 时给推送做背书——也如实说明什么拦得住、什么拦不住。",
+      en: "Attest a push when no pull request exists, and see what can and cannot be enforced.",
+      zh: "没有 PR 时给推送做背书，也说明什么拦得住、什么拦不住。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-branch-gate.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-branch-gate.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-branch-gate.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-branch-gate.md",
   },
   {
     title: { en: "Air-gapped hosts", zh: "离线机器" },
@@ -1173,8 +1179,8 @@ const VARIANTS = [
       en: "Signing on an HPC login node with no outbound network. What to carry, and who carries it.",
       zh: "在没有外网的 HPC 登录节点上签名。带什么进去，谁把结果带出来。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/offline.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/offline.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/offline.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/offline.md",
   },
   {
     title: { en: "Operations", zh: "运维" },
@@ -1182,8 +1188,8 @@ const VARIANTS = [
       en: "Key generation, the trust root, rotation, the error-code table, and what the timeouts actually are.",
       zh: "生成密钥、信任根、轮换、错误码表，以及超时到底是什么。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/operations.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/operations.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/operations.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/operations.md",
   },
   {
     title: { en: "Patch gate guide", zh: "补丁门禁指南" },
@@ -1191,8 +1197,8 @@ const VARIANTS = [
       en: "The full caller workflow from the tour, including the API-based head resolution.",
       zh: "导览里那个调用方 workflow 的完整版本，包括通过 API 解析 head。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-patch-gate.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-patch-gate.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-patch-gate.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-patch-gate.md",
   },
   {
     title: { en: "Benchmark run guide", zh: "Benchmark 记录指南" },
@@ -1200,8 +1206,8 @@ const VARIANTS = [
       en: "Evidence upload, dispatch-only gates, and a section on jobs that run for days.",
       zh: "证据上传、只用 dispatch 的门禁，以及任务跑好几天时怎么办。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-hardware-run.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-hardware-run.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-hardware-run.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-hardware-run.md",
   },
   {
     title: { en: "Multiple jobs guide", zh: "多 job 指南" },
@@ -1209,8 +1215,8 @@ const VARIANTS = [
       en: "Naming, required versus optional, and the aggregator pattern in full.",
       zh: "命名、必需与可选，以及完整的汇总 job 写法。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-multi-job.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-multi-job.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-multi-job.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-multi-job.md",
   },
 ];
 
@@ -1274,8 +1280,8 @@ const ADOPT = [
   {
     title: { en: "Sign where the job ran", zh: "在跑任务的地方签名" },
     text: {
-      en: "Install the wheel or the single-file <code>outboard.pyz</code>. The command needs no network and no GitHub token.",
-      zh: "装 wheel，或者用单文件 <code>outboard.pyz</code>。命令不需要网络，也不需要 GitHub token。",
+      en: "Install the wheel or the single-file <code>oob.pyz</code>. The command needs no network and no GitHub token.",
+      zh: "装 wheel，或者用单文件 <code>oob.pyz</code>。命令不需要网络，也不需要 GitHub token。",
     },
   },
   {

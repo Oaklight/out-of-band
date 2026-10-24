@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from outboard.errors import OutboardError
-from outboard.sign import sign
+from oob.errors import OutboardError
+from oob.sign import sign
 
 
 def extract(block: str) -> tuple[str, str]:

@@ -28,7 +28,7 @@ REPO_RE = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 CLAIM_KEY_RE = re.compile(r"^[a-z][a-z0-9_.-]{0,63}$")
 TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-TOOL_RE = re.compile(r"^outboard/\d+\.\d+\.\d+$")
+TOOL_RE = re.compile(r"^(oob|outboard)/\d+\.\d+\.\d+$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 BASE_FIELDS = (
@@ -166,7 +166,7 @@ def validate(receipt: Any) -> None:
     except ValueError as exc:
         raise _bad("E_BAD_VALUE", "issued_at is not a real timestamp") from exc
     if not TOOL_RE.match(receipt["tool"]):
-        raise _bad("E_BAD_VALUE", "tool must be outboard/<semver>")
+        raise _bad("E_BAD_VALUE", "tool must be oob/<semver>")
 
     evidence = receipt["evidence"]
     if not isinstance(evidence, dict):

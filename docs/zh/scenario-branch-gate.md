@@ -36,7 +36,7 @@ permissions:
 
 jobs:
   verified:
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
     with:
       pr: "0"
       commit: ${{ inputs.commit }}

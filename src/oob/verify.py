@@ -64,7 +64,7 @@ def _check_armor(signature: str) -> None:
 def _verify_signature(payload: bytes, signature: str, allowed_path: Path) -> str:
     principals = allowed.parse(allowed_path)
     _check_armor(signature)
-    with tempfile.TemporaryDirectory(prefix="outboard-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="oob-") as tmp:
         signature_file = Path(tmp) / "block.sig"
         signature_file.write_text(signature, encoding="utf-8")
         for principal in principals:

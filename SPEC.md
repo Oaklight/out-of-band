@@ -1,8 +1,8 @@
-# Outboard SPEC — v0.1
+# Out-of-band SPEC — v0.1
 
 Status: normative for `v0.1.x`. Mechanism only.
 
-Outboard lets a job run where GitHub cannot reach it, sign a receipt bound to a
+Out-of-band lets a job run where GitHub cannot reach it, sign a receipt bound to a
 commit, and have a hosted workflow verify that receipt and publish the verdict
 as a check.
 
@@ -18,7 +18,7 @@ v0.1.
 | Policy | which paths require a receipt, what the check runs, which key, required vs optional | the consumer repository |
 
 If the words `gpu`, `sm70`, or `patches/` appear in this repository, the split is
-broken. Outboard knows nothing about what the job does.
+broken. Out-of-band knows nothing about what the job does.
 
 **Non-goals for v0.1:** no runner, no hosted service, no GitHub App, no Sigstore,
 no scheduler, no artifact storage, no CLI command that publishes a check.
@@ -32,7 +32,7 @@ A receipt is an HTML comment marker followed by exactly two fenced blocks:
 ````text
 <!-- receipt:v1 -->
 ```json
-{"schema":"receipt/v1","repo":"OWNER/NAME","commit":"<40 hex>","tree":"<40 hex>","job":"smoke","result":"pass","issued_at":"2026-10-23T21:40:00Z","tool":"outboard/0.1.0","evidence":{"count":7,"digest":"sha256:<64 hex>"},"claims":{"device_count":2}}
+{"schema":"receipt/v1","repo":"OWNER/NAME","commit":"<40 hex>","tree":"<40 hex>","job":"smoke","result":"pass","issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.0","evidence":{"count":7,"digest":"sha256:<64 hex>"},"claims":{"device_count":2}}
 ```
 ```ssh-signature
 -----BEGIN SSH SIGNATURE-----
@@ -67,7 +67,7 @@ Exactly these top-level fields. Unknown fields are rejected, not ignored.
 | `job` | string | yes | `[A-Za-z0-9][A-Za-z0-9._-]{0,63}` |
 | `result` | string | yes | `pass` or `fail` |
 | `issued_at` | string | yes | `YYYY-MM-DDTHH:MM:SSZ`, UTC, second precision |
-| `tool` | string | yes | `outboard/<semver>`; informational, never trusted |
+| `tool` | string | yes | `oob/<semver>`; verifiers also accept `outboard/<semver>` from before the rename. Informational, never trusted |
 | `evidence` | object | yes | see below |
 | `evidence.count` | integer | yes | 0–1,000,000; no floats |
 | `evidence.digest` | string | yes | `sha256:` + 64 lowercase hex |
@@ -290,14 +290,14 @@ receipt was found and rejected, except `E_NO_BLOCK`, which means none was found.
 ## 5. CLI
 
 ```
-outboard sign   --job <name> --commit <sha> --result pass|fail
+oob sign   --job <name> --commit <sha> --result pass|fail
                 --evidence-dir <dir> --key <path>
                 [--repo <owner/name>] [--claims k=v ...]
                 [--output-file <file>] [--allow-dirty] [--out <file>]
 
-outboard pack   --evidence-dir <dir> --out <file> [--json]
+oob pack   --evidence-dir <dir> --out <file> [--json]
 
-outboard verify --block <file> --allowed-signers <file>
+oob verify --block <file> --allowed-signers <file>
                 --repo <owner/name> --commit <sha> --expect-job <name>
                 [--expect-tree <sha>] [--json]
 ```
@@ -380,7 +380,7 @@ File: `.github/workflows/verify.yml`, triggered by `workflow_call` only.
 | `commit` | string | required | expected head SHA; passed to `check-runs` as `head_sha` |
 | `job` | string | required | expected `job` value |
 | `required` | boolean | `true` | whether this PR needs a receipt |
-| `check-name` | string | `outboard` | check run name; this is what branch protection matches |
+| `check-name` | string | `out-of-band` | check run name; this is what branch protection matches |
 | `receipt` | string | `""` | receipt text passed directly (dispatch payload); takes precedence over comments |
 | `allowed-signers` | string | `.github/allowed_signers` | path in the caller repository, read from the default branch |
 | `trusted-authors` | string | `""` | comma-separated logins allowed to supply a receipt. Empty means comments whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` |
@@ -408,7 +408,7 @@ credential.
    `pull_request` event checks out the PR merge ref, which would let a PR
    supply its own `allowed_signers`. The file is never read from a PR
    checkout.
-2. Install `outboard` at an exact version pinned in the workflow file. Inside
+2. Install `out-of-band` at an exact version pinned in the workflow file. Inside
    the tool repository itself the workflow installs from the checked-out source
    instead, so the self-test exercises unreleased code; consumers always get
    the pinned release.
@@ -421,7 +421,7 @@ credential.
    (50 MiB cap), extract it without following links or escaping the directory,
    recompute the digest, and compare it with the signed `evidence.digest`. A
    mismatch makes the result unverified (`E_EVIDENCE_MISMATCH`); a matching
-   bundle is uploaded as the `outboard-evidence` artifact.
+   bundle is uploaded as the `oob-evidence` artifact.
 7. On `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so no check can
    be published. Fork PRs must be driven by `pull_request_target`,
    `issue_comment`, or `workflow_dispatch` (§6.9).
@@ -486,7 +486,7 @@ the merge stays blocked, which is the fail-closed result.
 - When the receipt verifies, a v2 `output` is rendered in `output.text` as an
   HTML-escaped `<details><pre>` block, so it appears folded and cannot inject
   Markdown or mentions.
-- A verified evidence bundle is uploaded as the `outboard-evidence` artifact.
+- A verified evidence bundle is uploaded as the `oob-evidence` artifact.
   The summary states `evidence: uploaded`, `digest only`, or `invalid`.
 - A new check run is created per verification. The newest one wins for branch
   protection; older ones remain visible in the Checks tab.
@@ -495,7 +495,7 @@ the merge stays blocked, which is the fail-closed result.
 
 ### 6.7 Sticky comment
 
-- One comment per PR, found by the marker `<!-- outboard:state -->` **and** an
+- One comment per PR, found by the marker `<!-- out-of-band:state -->` **and** an
   author matching `github-actions[bot]` (the Actions app; an installation token
   cannot call `GET /user`), edited in place with
   `PATCH /repos/{owner}/{repo}/issues/comments/{id}`.
@@ -540,7 +540,7 @@ jobs:
       contents: read
       checks: write
       pull-requests: write
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full commit SHA>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full commit SHA>
     with:
       pr: ${{ github.event.pull_request.number || 0 }}
       commit: ${{ github.event.pull_request.head.sha }}
@@ -573,7 +573,7 @@ trigger.
 - Revocation: remove the line in a commit.
 - The private key never enters the repository, a receipt, an artifact, or a log.
   It stays on the operator machine with mode `0600`.
-- Outboard does not manage keys. There is no key server.
+- Out-of-band does not manage keys. There is no key server.
 
 ## 8. What a receipt proves
 

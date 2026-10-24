@@ -8,8 +8,8 @@ useful six months later.
 
 ## What "attached" means
 
-A check run belongs to a commit. It is not attached to a branch, a release, or a
-person. So the first decision is which commit you are attesting.
+A check run belongs to a commit. It is not attached to a branch, a release, or an
+identity. So the first decision is which commit you are attesting.
 
 - A PR under review: the head commit. Wiring is the same as
   [Patch gate](scenario-patch-gate.md).
@@ -22,23 +22,23 @@ person. So the first decision is which commit you are attesting.
 
 ```bash
 # On the machine that ran the job. No network needed.
-outboard sign \
+oob sign \
   --job v100-bench \
   --commit 6e5b8a482f1baf41c8080b79501294cbf4057987 \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --repo owner/repo \
   --output-file ./summary.txt \
   --out receipt.md
 ```
 
 Keep the evidence directory small and meaningful: command lines, logs, the
-numbers you will want later. `outboard pack` turns it into a deterministic
+numbers you will want later. `oob pack` turns it into a deterministic
 archive:
 
 ```bash
-outboard pack --evidence-dir ./evidence --out evidence.tgz
+oob pack --evidence-dir ./evidence --out evidence.tgz
 ```
 
 The digest in the receipt covers the directory contents, so whatever you sign is
@@ -92,7 +92,7 @@ permissions:
 
 jobs:
   verified:
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
     with:
       pr: "0"
       commit: ${{ inputs.commit }}
@@ -134,7 +134,7 @@ Real limits:
   `output` text.
 - The run's step summary repeats the verdict, the source, and the evidence
   status.
-- If a bundle was uploaded, it is on the run as `outboard-evidence`, subject to
+- If a bundle was uploaded, it is on the run as `oob-evidence`, subject to
   Actions retention (90 days by default).
 - The PR comment, when there is one, is the durable record; the check is not.
 

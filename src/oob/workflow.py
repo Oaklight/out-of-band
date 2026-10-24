@@ -1,6 +1,6 @@
 """Helpers used by the reusable workflow.
 
-Two entry points, invoked as `python -m outboard.workflow collect|publish`.
+Two entry points, invoked as `python -m oob.workflow collect|publish`.
 They are not part of the public CLI: creating a check run requires the Actions
 App identity, so publishing stays in the workflow (SPEC.md §5.3).
 """
@@ -28,7 +28,7 @@ MAX_EVIDENCE_FILES = 1000
 # Installation tokens cannot call GET /user; in Actions the comment author is
 # always the Actions app bot.
 BOT_LOGIN = "github-actions[bot]"
-STATE_MARKER = "<!-- outboard:state -->"
+STATE_MARKER = "<!-- oob:state -->"
 
 
 def _set_output(**values: str) -> None:
@@ -231,7 +231,7 @@ def _summary(
     state: str, code: str, job: str, commit: str, source: str, claims: str, evidence: str
 ) -> str:
     text = (
-        f"### outboard: {_clean(state)}\n\n"
+        f"### oob: {_clean(state)}\n\n"
         "```text\n"
         f"job: {_clean(job)}\n"
         f"commit: {_clean(commit)}\n"
@@ -280,7 +280,7 @@ def publish() -> int:
     repo = os.environ["GITHUB_REPOSITORY"]
     commit = os.environ["COMMIT"]
     job = os.environ["JOB"]
-    check_name = os.environ.get("CHECK_NAME") or "outboard"
+    check_name = os.environ.get("CHECK_NAME") or "oob"
     source = os.environ.get("SOURCE") or "none"
     temp = Path(os.environ["RUNNER_TEMP"])
 
@@ -295,7 +295,7 @@ def publish() -> int:
         "status": "completed",
         "conclusion": conclusion,
         "output": {
-            "title": f"outboard: {state}",
+            "title": f"oob: {state}",
             "summary": summary,
             "text": output_block,
         },
@@ -401,13 +401,13 @@ def main(argv: list[str] | None = None) -> int:
     if args == ["publish"]:
         return publish()
     if args and args[0] == "evidence":
-        parser = argparse.ArgumentParser(prog="outboard.workflow evidence", add_help=False)
+        parser = argparse.ArgumentParser(prog="oob.workflow evidence", add_help=False)
         parser.add_argument("--receipt", required=True)
         parser.add_argument("--archive", required=True)
         parser.add_argument("--out", required=True)
         parsed, _ = parser.parse_known_args(args[1:])
         return evidence(parsed.receipt, parsed.archive, parsed.out)
-    print("usage: python -m outboard.workflow collect|publish", file=sys.stderr)
+    print("usage: python -m oob.workflow collect|publish", file=sys.stderr)
     return EXIT_ERROR
 
 

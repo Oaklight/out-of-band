@@ -2,7 +2,7 @@
 
 [English](prior-art.md) | [中文](../zh/prior-art.md)
 
-Outboard sits in a narrow gap. These tools solve adjacent problems, and several
+Out-of-band sits in a narrow gap. These tools solve adjacent problems, and several
 of them are a better choice when their conditions hold.
 
 ## The mechanism is old
@@ -23,8 +23,7 @@ Sigstore-backed provenance for artifacts built in a workflow. The identity comes
 from the workflow's OIDC token, and GitHub stores the attestation.
 
 They are the right tool when the job runs in Actions. A job on an HPC login node
-or a rented GPU has no workflow identity to present, which is the case outboard
-exists for.
+or a rented GPU has no workflow identity to present, which is where out-of-band fits.
 
 ## Sigstore, keyless
 
@@ -35,20 +34,20 @@ issuer. The host in the target scenario has neither.
 Sigstore can sign a blob with a key offline, and that part overlaps. What it
 does not provide is the GitHub-side policy: which key may speak for this
 repository, which commit and evidence the claim covers, and what blocks a merge.
-That policy layer is most of outboard.
+That policy layer is most of this tool.
 
-Outboard has no transparency log. Its durable record is the PR comment; the
+Out-of-band has no transparency log. Its durable record is the PR comment; the
 evidence stays with the operator unless a bundle is uploaded.
 
 ## SLSA and provenance frameworks
 
 SLSA describes build provenance and levels. A receipt is an operator
-attestation, not a builder-identity claim. Outboard does not make a SLSA level,
+attestation, not a builder-identity claim. Out-of-band does not make a SLSA level,
 and does not pretend to.
 
 in-toto is the closest in spirit: signed statements about supply-chain steps,
 with a layout describing who may attest what. It is more expressive, and it
-needs a layout and a verifier. Outboard deliberately has neither.
+needs a layout and a verifier. Out-of-band deliberately has neither.
 
 ## Prior art in the same niche
 
@@ -76,5 +75,5 @@ These were design references, not dependencies. Credit where it is due:
   in-toto are the right layer.
 - You need an approval, not evidence: a review or an environment rule is enough.
 
-Outboard is for the remaining case: a required check, a job that runs where
+Out-of-band is for the remaining case: a required check, a job that runs where
 GitHub cannot reach, and no credential on that machine.
