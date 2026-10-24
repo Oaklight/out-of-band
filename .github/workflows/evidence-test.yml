@@ -113,24 +113,6 @@ jobs:
         if: always()
         run: tail -40 "$GITHUB_STEP_SUMMARY"
 
-  summary-probe:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
-      - name: Workflow writes
-        run: |
-          echo "workflow-line" >> "$GITHUB_STEP_SUMMARY"
-          echo "workflow path=$GITHUB_STEP_SUMMARY size=$(wc -c < "$GITHUB_STEP_SUMMARY")"
-      - name: Composite writes
-        uses: ./.github/actions/summary-probe
-      - name: After composite
-        run: |
-          echo "after path=$GITHUB_STEP_SUMMARY size=$(wc -c < "$GITHUB_STEP_SUMMARY")"
-          cat "$GITHUB_STEP_SUMMARY"
-
   assert:
     needs: [via-url, via-file]
     if: always()

@@ -193,8 +193,6 @@ runs:
           --out "$RUNNER_TEMP/evidence"
         if [ $? -eq 0 ]; then
           echo "status=ok" >> "$GITHUB_OUTPUT"
-          python -m oob.workflow evidence-display --dir "$RUNNER_TEMP/evidence" \
-            >> "$GITHUB_STEP_SUMMARY"
         else
           echo "status=invalid" >> "$GITHUB_OUTPUT"
         fi
@@ -218,6 +216,7 @@ runs:
         SOURCE: ${{ steps.resolve.outputs.source }}
         VERIFY_EXIT: ${{ steps.verify.outputs.exit }}
         EVIDENCE_STATUS: ${{ steps.evidence.outputs.status }}
+        EVIDENCE_DIR: ${{ runner.temp }}/evidence
         COMMIT: ${{ inputs.commit }}
         JOB: ${{ inputs.job }}
         PR: ${{ inputs.pr }}

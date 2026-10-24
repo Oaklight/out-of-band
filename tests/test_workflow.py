@@ -153,6 +153,46 @@ def test_publish_creates_a_check_run(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert "verdict=verified" in (tmp_path / "out").read_text()
 
 
+def test_publish_puts_evidence_in_the_step_summary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[tuple[str, ...], str | None]] = []
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/widget")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "out"))
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary"))
+    monkeypatch.setenv("REQUIRED", "true")
+    monkeypatch.setenv("FOUND", "true")
+    monkeypatch.setenv("VERIFY_EXIT", "0")
+    monkeypatch.setenv("REQUIRE_EVIDENCE", "true")
+    monkeypatch.setenv("EVIDENCE_STATUS", "ok")
+    evidence_dir = tmp_path / "evidence"
+    evidence_dir.mkdir()
+    (evidence_dir / "run.log").write_text("self-test evidence\n")
+    monkeypatch.setenv("EVIDENCE_DIR", str(evidence_dir))
+    monkeypatch.setenv("COMMIT", "a" * 40)
+    monkeypatch.setenv("JOB", "smoke")
+    monkeypatch.setenv("CHECK_NAME", "gate")
+    monkeypatch.setenv("PR", "0")
+    (tmp_path / "verdict.json").write_text('{"verdict":"pass","code":"OK"}')
+
+    def fake_gh(*args: str, stdin: str | None = None) -> str:
+        calls.append((args, stdin))
+        return ""
+
+    monkeypatch.setattr(workflow, "_gh", fake_gh)
+    assert workflow.publish() == 0
+
+    summary = (tmp_path / "summary").read_text()
+    assert "### evidence" in summary
+    assert "run.log" in summary
+    assert "self-test evidence" in summary
+
+    payload = json.loads(next(stdin for args, stdin in calls if "--input" in args and stdin))
+    assert "### evidence" not in payload["output"]["summary"]
+    assert "self-test evidence" not in payload["output"]["text"]
+
+
 def _receipt_comment(commit: str, signature: str = "AAA", job: str = "smoke") -> dict:
     payload = json.dumps(
         {"schema": "receipt/v1", "commit": commit, "job": job, "result": "pass"},
