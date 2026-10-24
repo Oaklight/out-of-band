@@ -49,18 +49,21 @@ jobs:
           git config --global user.email ci@example.com
           git config --global user.name ci
           work=$(mktemp -d)
-          git -C "$work" init -q
-          echo hi > "$work/f.txt"
-          git -C "$work" add f.txt
-          git -C "$work" commit -qm init
+          git -C "$work/repo" init -q
+          echo hi > "$work/repo/f.txt"
+          git -C "$work/repo" add f.txt
+          git -C "$work/repo" commit -qm init
+          sha=$(git -C "$work/repo" rev-parse HEAD)
           mkdir -p "$work/ev"
           echo "loss 1.23" > "$work/ev/log.txt"
           ssh-keygen -q -t ed25519 -N "" -f "$work/key"
           echo "operator $(cat "$work/key.pub")" > "$work/allowed_signers"
-          cd "$work"
+          cd "$work/repo"
           python "$GITHUB_WORKSPACE/dist/outboard.pyz" sign \
-            --job smoke --commit "$(git rev-parse HEAD)" --result pass \
-            --evidence-dir ev --key key --repo Oaklight/outboard --out receipt.md
+            --job smoke --commit "$sha" --result pass \
+            --evidence-dir "$work/ev" --key "$work/key" \
+            --repo Oaklight/outboard --out "$work/receipt.md"
+          cd "$work"
           python "$GITHUB_WORKSPACE/dist/outboard.pyz" verify \
             --block receipt.md --allowed-signers allowed_signers \
-            --repo Oaklight/outboard --commit "$(git rev-parse HEAD)" --expect-job smoke
+            --repo Oaklight/outboard --commit "$sha" --expect-job smoke
