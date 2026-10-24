@@ -56,7 +56,6 @@ const UI = {
       },
     ],
     faqTitle: "Why not just…",
-    faqLede: "These alternatives all have a place. Here is where each one stops.",
     faq: [
       {
         q: "…run a self-hosted runner on that machine?",
@@ -175,7 +174,6 @@ const UI = {
       },
     ],
     faqTitle: "那为什么不直接用……",
-    faqLede: "这些替代方案各有适用的时候。下面说它们各自卡在哪。",
     faq: [
       {
         q: "……在那台机器上跑 self-hosted runner？",
