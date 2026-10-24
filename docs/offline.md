@@ -7,6 +7,73 @@ Nothing in `sign`, `pack`, or `verify` opens a socket. The signature covers
 local bytes, and `issued_at` comes from the host clock, so an unsynchronized
 clock changes a timestamp, not validity.
 
+## Who carries what
+
+`outboard` implements no transport and opens no socket. A receipt is a signature
+over bytes, so any channel that moves bytes works, and the channel does not have
+to be trusted: alter the bytes and verification fails. Adding SSH to the tool
+would mean owning credentials, host keys and bastion rules inside it, and would
+still not fit every site.
+
+The target machine and the signing machine do not have to be the same. A receipt
+is the operator's assertion bound to an evidence digest, not a statement produced
+by the host. The usual split is:
+
+1. Run the job where it has to run, and have it write a run directory with the
+   evidence (logs, outputs, measurements).
+2. Bring the evidence out.
+3. Sign where the private key lives.
+
+### Keep the key off the cluster
+
+Preferred. The cluster needs no key, no credential and no install; it only writes
+a directory. Pull it to your workstation and sign there:
+
+```bash
+ssh hpc 'tar -C ~/runs/1234 -cf - .' | tar -C ./evidence -xf -
+outboard sign --job bench-smoke --commit <sha> --result pass \
+  --evidence-dir ./evidence --key ~/.ssh/outboard --repo owner/name \
+  --output-file ./check-output.txt > receipt.md
+```
+
+The claim still says what happened on the host; the signature says you stand
+behind it, and the digest says exactly which bytes you are standing behind.
+
+### If the signature must come from the host
+
+Some policies want the key to stay inside the enclave. Then the host signs, and
+only the output travels. In order of preference:
+
+**Shared storage.** Login and compute nodes usually share `$HOME` or a scratch
+filesystem. Let the job write `~/runs/<id>/`, sign from the login node, and pull
+the result from your workstation. Nothing has to route back to the host.
+
+**SSH pull.** Your workstation reaches the host (directly or through a bastion),
+never the other way round:
+
+```bash
+ssh hpc 'cat ~/runs/1234/receipt.md' > receipt.md
+ssh hpc 'cat ~/runs/1234/evidence.tgz' > evidence.tgz
+```
+
+`sign` writes its block to stdout, so it can also run remotely with the key on
+the host:
+
+```bash
+ssh hpc 'outboard sign --job bench-smoke --commit <sha> --result pass \
+  --evidence-dir runs/1234 --key .ssh/outboard --repo owner/name' > receipt.md
+```
+
+**One-way physical transfer.** USB, a data diode, or an internal share from a
+jump host. The procedure above is unchanged; only the `scp` becomes a copy.
+
+### What the runner still needs
+
+The workflow fetches `evidence-url` from GitHub's runner, not from your machine.
+So the URL must be reachable from the internet-facing runner; a URL on the HPC's
+internal network will not work. Upload the bundle from the connected side, then
+dispatch or comment.
+
 ## Carry the tool in
 
 The wheel is pure Python (`py3-none-any`), so any Python 3.11+ interpreter can
