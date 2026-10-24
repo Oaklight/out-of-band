@@ -87,6 +87,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -102,6 +103,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -118,6 +120,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -134,6 +137,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -150,6 +154,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -191,6 +196,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -207,6 +213,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest-secondary
@@ -223,6 +230,7 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/verify.yml
     with:
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest-missing
