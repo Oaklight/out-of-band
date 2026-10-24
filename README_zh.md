@@ -1,6 +1,6 @@
 # outboard
 
-面向 CI 门禁的带外回执。
+在 GitHub 够不到的地方跑检查，用签名回执卡住合并。
 
 <p align="center">
   <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/v/outboard?color=green" alt="PyPI"></a>
@@ -16,24 +16,17 @@
 
 ## 为什么需要它
 
-设想一个只有一台机器能真正验证的 PR。代码需要特定的加速器、有授权的工具链、
-只能从办公网访问的数据库，或者一台几个人共用的实验机。GitHub 的 runner 到不了
-那里，检查也搬不走。
+有些检查，GitHub 的 runner 跑不了：需要某种加速器、有授权的工具链、只能从内网访问的数据库，或者一台几个人共用的实验机。检查本身没问题，只是搬不到 GitHub 上。
 
-把 runner 装到那台机器上，通常比问题本身更糟：
+把 runner 装到那台机器上，麻烦通常比收益多：
 
-- **self-hosted runner** 意味着共享硬件上常驻一个守护进程、一个能领取任务的
-  GitHub 凭据，以及仓库代码会在这台机器上执行。
-- **上传日志和 artifact** 把合并决定交给一个人去浏览器标签页里翻文件。
-- **跳过检查** 把门禁变成了建议。
+- 自托管 runner 要在共享机器上常驻一个进程，放一份能领任务的 GitHub 凭据，仓库代码还会在那台机器上执行。
+- 上传日志和产物，最后变成有人在浏览器里翻文件来决定能不能合并。
+- 干脆跳过检查，门禁就成了摆设。
 
-outboard 走第四条路。检查留在原地运行，产出一条很小的签名声明：这个仓库、这个
-commit、这个 job、这个结果、这份证据摘要。只有这条声明会离开那台机器。托管侧的
-workflow 对原始字节验签、核对绑定，并把结论发布成 check run。操作员机器不需要
-任何入站路径，也不持有 GitHub 凭据。
+outboard 换个做法：检查留在原地，跑完只生成一小段签名记录，写明仓库、commit、job、结果和证据摘要。离开这台机器的只有这段记录。GitHub 那边的 workflow 会对原始字节验签、核对绑定关系，再把结论发成 check run。操作员机器不用开入站端口，也不用存 GitHub 凭据。
 
-如果没有收到有效声明，结果就是 `unverified`，合并保持阻塞。"没跑"和"跑了但失败"
-始终是两个不同的状态。
+没有有效记录，结论就是 `unverified`，合并继续被挡住。“没跑”和“跑了但失败”始终分开。
 
 ```
 operator host                          GitHub
@@ -47,20 +40,18 @@ check ──► evidence ──► sign            PR comment / dispatch
                                                       └── sticky comment
 ```
 
-分工是刻意的：本仓库负责机制（格式、签名、验签、发布），消费者负责策略（哪些
-路径需要回执、job 名称、用哪把密钥、必需还是可选）。
+本仓库只管机制（格式、签名、验签、发布）；策略（哪些路径要回执、job 叫什么、用哪把密钥、必选还是可选）留在使用方仓库。
 
-## 三种状态，绝不合并
+## 三种状态，别混为一谈
 
 | 回执 | 退出码 | check 结论 |
 |---|---|---|
 | 有效，`result: pass` | 0 | `success` |
 | 有效，`result: fail` | 1 | `failure` |
 | 缺失或无效 | 2 | `action_required` |
-| 用法或内部错误 | 3 | 不发布；job 失败 |
+| 用法错误或内部错误 | 3 | 不发布，job 失败 |
 
-缺回执是 **unverified**，绝不是 skip。工具跑不起来时，必需的检查保持 pending，
-合并继续被阻塞。
+没有回执就是 `unverified`，不能当成 skip。工具自身出错时，必需的检查会停在 pending，合并照样过不去。
 
 ## 安装
 
@@ -68,25 +59,23 @@ check ──► evidence ──► sign            PR comment / dispatch
 pip install outboard
 ```
 
-需要 Python 3.11+，以及支持 `ssh-keygen -Y sign` 的 OpenSSH（8.0+）。没有运行时
-依赖。
+需要 Python 3.11+ 和 OpenSSH 8.0+（`ssh-keygen -Y sign`），没有运行时依赖。
 
-## 快速开始
+## 快速上手
 
-在操作员机器上生成密钥。它不离开这台机器。
+密钥在操作员机器上生成，私钥不出这台机器。
 
 ```bash
 ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/outboard
 ```
 
-把公钥提交到消费者仓库的 `.github/allowed_signers`：
+把公钥提交到使用方仓库的 `.github/allowed_signers`：
 
 ```
 operator ssh-ed25519 AAAA...
 ```
 
-为某个 commit 签署结果。`--commit` 必须是本地克隆中存在的完整 SHA；tree 从
-commit 读取，而不是工作区。
+给某个 commit 签结果。`--commit` 必须是完整的 SHA，本地仓库里得存在；tree 从 commit 读，不看工作区。
 
 ```bash
 outboard sign \
@@ -97,10 +86,9 @@ outboard sign \
   --key ~/.ssh/outboard
 ```
 
-输出是一个块：HTML 标记、一行 JSON、一段 SSH 签名。把它贴成 PR 评论，或传给
-`workflow_dispatch` 输入。
+输出就是回执：一个 HTML 标记、一行 JSON、一段 SSH 签名。贴成 PR 评论，或者通过 `workflow_dispatch` 传进去。
 
-发出前先在本地验一遍：
+发出去之前先本地验一遍：
 
 ```bash
 outboard verify --block block.md \
@@ -108,7 +96,7 @@ outboard verify --block block.md \
   --repo owner/name --commit "$SHA" --expect-job smoke
 ```
 
-## 接入消费者仓库
+## 接到自己的仓库
 
 ```yaml
 name: receipt gate
@@ -155,45 +143,35 @@ jobs:
       trusted-authors: operator-login
 ```
 
-然后在分支保护里把 `smoke-verified` 设为 required check。check 名称是公开契约：
-改名会悄悄改变分支保护的内容。
+然后在分支保护里把 `smoke-verified` 设为必需检查。check 名称是对外契约，改名等于悄悄改了保护规则。
 
-输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、
-`allowed-signers`、`trusted-authors`。输出：`verdict`。
+输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`；输出：`verdict`。
 
-`uses:` 必须按 commit SHA 固定。tag 是可变的。
+`uses:` 用完整 commit SHA 固定，tag 是可以被挪动的。
 
-### 回执收集
+### 回执从哪来
 
-- 设置了 `receipt` 输入时以它为准，用于 `workflow_dispatch`。
-- 否则 workflow 读取 `pr` 上的 issue 评论，只保留可信作者的评论：设置了
-  `trusted-authors` 就用它，否则要求 `OWNER`、`MEMBER` 或 `COLLABORATOR`。
-  不可信评论里的标记会被完全忽略，陌生人贴一条也无法卡住门禁。
-- 字节完全相同的块视为同一个；互相矛盾的块报 `E_MULTI_BLOCK`。
+- 传了 `receipt` 输入就用它，适合 `workflow_dispatch`。
+- 否则读 PR 的 issue 评论，只认可信作者：配了 `trusted-authors` 就按名单，没配就只认 `OWNER`、`MEMBER`、`COLLABORATOR`。不可信评论里的标记直接忽略，陌生人贴一条也卡不住门禁。
+- 字节完全一致的块算同一条，对不上的报 `E_MULTI_BLOCK`。
 
-### 触发方式与 fork
+### 触发方式和 fork
 
-来自 fork 的 `pull_request` 拿到的是只读 token，什么都发布不了。fork 场景请用
-`pull_request_target`（跑 default 分支代码，不 checkout PR）或 `issue_comment`。
+从 fork 来的 `pull_request` 只有只读 token，什么都发布不了。fork 场景用 `pull_request_target`（跑默认分支代码，不 checkout PR）或者 `issue_comment`。
 
 ### 凭据
 
-`sign` 和 `verify` 不需要任何 GitHub 凭据，断网也能工作。发布需要 GitHub App
-身份；在 Actions 里自动签发的 `GITHUB_TOKEN` 就是 Actions App。PAT 只能创建
-commit status，所以 CLI 没有 publish 命令。
+`sign` 和 `verify` 不需要任何 GitHub 凭据，断网也能跑。发布得用 GitHub App 身份；在 Actions 里，自动签发的 `GITHUB_TOKEN` 就是 Actions App。PAT 只能建 commit status，所以 CLI 里没有 `publish`。
 
 ### 保留期
 
-check 和 workflow run 跟随 Actions 的保留期设置（默认 90 天，public 仓库上限
-90 天）。PR 评论里的回执才是长期记录，证据目录留在操作员侧。
+check 和 workflow run 跟着 Actions 的保留期走（默认 90 天，公开仓库最多 90 天）。要长期留档，靠 PR 评论里的回执；证据目录留在操作员那边。
 
-## 回执能证明什么
+## 回执能说明什么
 
-它证明：某把已登记密钥的持有者签了这些确切的字节，绑定了一个仓库、commit、
-tree、job 和证据摘要。
+它能说明：某个登记过公钥的人用对应的私钥签了这些字节，绑定了一个仓库、commit、tree、job 和证据摘要。
 
-它不证明 job 跑得对、证据与摘要一致、或机器没有被攻破。它是一份证词，不是正确性
-的证明。见 [SPEC.md](SPEC.md) §8。
+它不能说明 job 跑得对不对、证据和摘要是否一致、机器有没有被入侵。这是一份签名声明，不是正确性证明。详见 [SPEC.md](SPEC.md) 第 8 节。
 
 ## 开发
 
@@ -203,9 +181,8 @@ pytest -q
 ruff check src tests
 ```
 
-`SPEC.md` 是规范（英文）。`docs/validation.md` 记录了操作员机器的验证过程。
-self-test workflow 会签四份回执，并断言有效的通过、伪造的不通过。
+`SPEC.md` 是规范（英文）。`docs/validation.md` 记录了操作员机器上的验证。self-test workflow 会签四份回执，断言有效的能过、伪造的过不了。
 
-## 非目标
+## 不做什么
 
-不做 runner、不做托管服务、不做 GitHub App、不接 Sigstore、不存 artifact。
+不做 runner、不做托管服务、不做 GitHub App、不接 Sigstore、不存产物。
