@@ -15,6 +15,9 @@ permissions:
   checks: write
   pull-requests: write
 
+# Check names are "oob-selftest/<case>" and "oob-action/<case>". A negative case
+# ends with "(expected)": the red check run is the assertion, not a failed test.
+
 jobs:
   operator:
     runs-on: ubuntu-latest
@@ -86,7 +89,7 @@ jobs:
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
-      check-name: oob-selftest-valid
+      check-name: oob-selftest/valid
       receipt: ${{ needs.operator.outputs.valid }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -101,7 +104,7 @@ jobs:
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
-      check-name: oob-selftest-fail
+      check-name: oob-selftest/fail (expected)
       receipt: ${{ needs.operator.outputs.failing }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -116,7 +119,7 @@ jobs:
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
-      check-name: oob-selftest-altered
+      check-name: oob-selftest/altered (expected)
       receipt: ${{ needs.operator.outputs.altered }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -131,7 +134,7 @@ jobs:
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
-      check-name: oob-selftest-stranger
+      check-name: oob-selftest/stranger (expected)
       receipt: ${{ needs.operator.outputs.stranger }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -147,7 +150,7 @@ jobs:
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
       required: false
-      check-name: oob-selftest-not-required
+      check-name: oob-selftest/not required
       receipt: ${{ needs.operator.outputs.altered }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -187,7 +190,7 @@ jobs:
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
-      check-name: oob-selftest-comment
+      check-name: oob-selftest/comment
       allowed-signers: .github/selftest_allowed_signers
       trusted-authors: "github-actions[bot]"
 
@@ -203,7 +206,7 @@ jobs:
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest-secondary
-      check-name: oob-selftest-comment-secondary
+      check-name: oob-selftest/comment (second job)
       allowed-signers: .github/selftest_allowed_signers
       trusted-authors: "github-actions[bot]"
 
@@ -219,7 +222,7 @@ jobs:
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest-missing
-      check-name: oob-selftest-comment-missing-job
+      check-name: oob-selftest/missing job (expected)
       allowed-signers: .github/selftest_allowed_signers
       trusted-authors: "github-actions[bot]"
 
@@ -242,7 +245,7 @@ jobs:
         with:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
-          check-name: oob-action-valid
+          check-name: oob-action/valid
           receipt: ${{ needs.operator.outputs.valid }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -266,7 +269,7 @@ jobs:
         with:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
-          check-name: oob-action-fail
+          check-name: oob-action/fail (expected)
           receipt: ${{ needs.operator.outputs.failing }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -290,7 +293,7 @@ jobs:
         with:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
-          check-name: oob-action-altered
+          check-name: oob-action/altered (expected)
           receipt: ${{ needs.operator.outputs.altered }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -314,7 +317,7 @@ jobs:
         with:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
-          check-name: oob-action-stranger
+          check-name: oob-action/stranger (expected)
           receipt: ${{ needs.operator.outputs.stranger }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -339,7 +342,7 @@ jobs:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
           required: "false"
-          check-name: oob-action-not-required
+          check-name: oob-action/not required
           receipt: ${{ needs.operator.outputs.altered }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -365,7 +368,7 @@ jobs:
           pr: ${{ github.event.pull_request.number }}
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
-          check-name: oob-action-comment
+          check-name: oob-action/comment
           allowed-signers: .github/selftest_allowed_signers
           trusted-authors: "github-actions[bot]"
           source: .
@@ -391,7 +394,7 @@ jobs:
           pr: ${{ github.event.pull_request.number }}
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest-secondary
-          check-name: oob-action-comment-secondary
+          check-name: oob-action/comment (second job)
           allowed-signers: .github/selftest_allowed_signers
           trusted-authors: "github-actions[bot]"
           source: .
@@ -417,7 +420,7 @@ jobs:
           pr: ${{ github.event.pull_request.number }}
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest-missing
-          check-name: oob-action-comment-missing-job
+          check-name: oob-action/missing job (expected)
           allowed-signers: .github/selftest_allowed_signers
           trusted-authors: "github-actions[bot]"
           source: .
