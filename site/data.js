@@ -708,7 +708,10 @@ const SCENARIOS = [
             text:
               "on:\n" +
               "  workflow_dispatch:\n" +
-              "    inputs: { commit, receipt, evidence-url }\n" +
+              "    inputs:\n" +
+              "      commit:       { required: true }\n" +
+              "      receipt:      { required: true }\n" +
+              '      evidence-url: { default: "" }\n' +
               "\n" +
               "jobs:\n" +
               "  verified:\n" +
