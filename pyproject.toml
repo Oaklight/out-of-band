@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "outboard"
-version = "0.1.1"
+version = "0.2.0"
 description = "Out-of-band CI receipts: sign where GitHub cannot reach, verify in Actions, publish a check."
 readme = "README_en.md"
 requires-python = ">=3.11"
