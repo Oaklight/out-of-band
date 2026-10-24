@@ -265,7 +265,10 @@
         block.items.forEach((f) => {
           const row = node("div", "file");
           row.appendChild(node("span", "", f.path));
-          if (f.add) row.appendChild(node("span", "add", f.add));
+          const stat = node("span", "stat");
+          if (f.add) stat.appendChild(node("span", "add", f.add));
+          if (f.del) stat.appendChild(node("span", "del", f.del));
+          row.appendChild(stat);
           wrap.appendChild(row);
         });
         return wrap;
