@@ -252,12 +252,12 @@ const SCENARIOS = [
       {
         nav: { en: "A PR CI can't test", zh: "CI 测不了的 PR" },
         title: {
-          en: "The rule is about a path, not a person.",
-          zh: "规则针对路径，不针对某个人。",
+          en: "The rule is about a path, not an identity.",
+          zh: "规则看的是路径，不是身份。",
         },
         body: {
-          en: "A change under <code>patches/</code> needs a device test. The hosted runner cannot provide the device, so branch protection waits on a check that only a person can satisfy. The rest of this tour makes that check worth trusting.",
-          zh: "<code>patches/</code> 下的改动要在设备上测。托管的 runner 给不了设备，于是分支保护在等一个只有人才能满足的 check。后面几步要做的，就是让这个 check 值得信任。",
+          en: "A change under <code>patches/</code> needs a device test. The hosted runner cannot provide the device, so branch protection waits on a check the hosted runner cannot produce. The rest of this tour makes that check worth trusting.",
+          zh: "<code>patches/</code> 下的改动要在设备上测。托管的 runner 给不了设备，于是分支保护在等一个只能从外部来的 check。后面几步要做的，就是让这个 check 值得信任。",
         },
         github: [
           { t: "event", text: "pull_request_target · synchronize" },

@@ -12,8 +12,8 @@ chmod 600 ~/.ssh/out-of-band
 ```
 
 `ssh-keygen -Y sign` reads the key file directly; it does not consult
-`ssh-agent`. A passphrase means an interactive prompt, which is fine when a
-person signs and impossible in an unattended job. Use an unencrypted key with
+`ssh-agent`. A passphrase means an interactive prompt, which is fine when an
+operator is present and impossible in an unattended job. Use an unencrypted key with
 `0600` on a machine only the operator can log into, or sign interactively.
 
 The public key goes into `.github/allowed_signers` on the default branch:

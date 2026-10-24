@@ -8,8 +8,8 @@ useful six months later.
 
 ## What "attached" means
 
-A check run belongs to a commit. It is not attached to a branch, a release, or a
-person. So the first decision is which commit you are attesting.
+A check run belongs to a commit. It is not attached to a branch, a release, or an
+identity. So the first decision is which commit you are attesting.
 
 - A PR under review: the head commit. Wiring is the same as
   [Patch gate](scenario-patch-gate.md).

@@ -29,7 +29,7 @@ Putting a runner on that machine is usually worse than the problem:
 - A **self-hosted runner** means a long-lived daemon on shared hardware, a
   GitHub credential that can pick up jobs, and repository code executing on the
   box.
-- **Uploading logs and artifacts** leaves the merge decision to a person
+- **Uploading logs and artifacts** leaves the merge decision to a reviewer
   reading files in a browser tab.
 - **Skipping the check** turns the gate into a suggestion.
 

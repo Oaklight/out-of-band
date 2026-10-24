@@ -3,7 +3,7 @@
 [English](scenario-patch-gate.md) | [中文](../zh/scenario-patch-gate.md)
 
 You have a `patches/` directory (or `src/`, or a firmware tree) whose changes
-must be smoke-tested on real hardware. CI cannot run that test, so a person
+must be smoke-tested on real hardware. CI cannot run that test, so an operator
 runs it and signs the result.
 
 ## The workflow

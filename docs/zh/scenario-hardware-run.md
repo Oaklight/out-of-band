@@ -6,7 +6,7 @@
 
 ## "挂在 commit 上"是什么意思
 
-check run 属于 commit，不属于分支、release 或某个人。所以第一步是决定为哪个 commit 背书。
+check run 属于 commit，不属于分支、release 或某个身份。所以第一步是决定为哪个 commit 背书。
 
 - 正在评审的 PR：head commit，接法同[补丁门禁](scenario-patch-gate.md)。
 - release 或 tag：tag 指向的 commit。这类没有 PR 可评论，用 dispatch 提交。

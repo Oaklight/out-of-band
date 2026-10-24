@@ -177,7 +177,7 @@ signed digest before keeping it.
 
 ## What this does not solve
 
-- The receipt still has to be carried out by a person or a one-way transfer.
+- The receipt still has to be carried out by an operator or a one-way transfer.
   There is no outbound path from the host, by definition.
 - Large raw logs should be curated before packing. The workflow caps a bundle
   at 50 MiB; the signed `output` is capped at 4 KiB.
