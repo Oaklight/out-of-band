@@ -149,3 +149,97 @@ def test_publish_creates_a_check_run(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert payload["name"] == "gate"
     assert "verified" in (tmp_path / "summary").read_text()
     assert "verdict=verified" in (tmp_path / "out").read_text()
+
+
+def _receipt_comment(commit: str, signature: str = "AAA") -> dict:
+    payload = json.dumps(
+        {"schema": "receipt/v1", "commit": commit, "job": "smoke", "result": "pass"},
+        separators=(",", ":"),
+    )
+    body = f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\n{signature}\n```\n"
+    return {"body": body, "author_association": "OWNER", "user": {"login": "operator"}}
+
+
+def _collect_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, commit: str) -> Path:
+    output = tmp_path / "out"
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/widget")
+    monkeypatch.setenv("RECEIPT", "")
+    monkeypatch.setenv("PR", "7")
+    monkeypatch.setenv("TRUSTED", "")
+    monkeypatch.setenv("COMMIT", commit)
+    return output
+
+
+def test_collect_ignores_receipts_for_another_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A re-run after a new push must not be poisoned by the old receipt."""
+    head = "a" * 40
+    previous = "b" * 40
+    output = _collect_env(tmp_path, monkeypatch, head)
+    comments = [_receipt_comment(previous), _receipt_comment(head)]
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: comments)
+
+    assert workflow.collect() == 0
+    assert "found=true" in output.read_text()
+    assert head in (tmp_path / "receipt.md").read_text()
+
+
+def test_collect_reports_wrong_commit_when_only_stale_receipts_exist(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = _collect_env(tmp_path, monkeypatch, "a" * 40)
+    comments = [_receipt_comment("b" * 40)]
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: comments)
+
+    assert workflow.collect() == 0
+    text = output.read_text()
+    assert "found=false" in text
+    assert "code=E_WRONG_COMMIT" in text
+
+
+def test_collect_still_rejects_disagreeing_blocks_for_the_same_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    head = "a" * 40
+    output = _collect_env(tmp_path, monkeypatch, head)
+    comments = [_receipt_comment(head, "AAA"), _receipt_comment(head, "BBB")]
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: comments)
+
+    assert workflow.collect() == 0
+    assert "code=E_MULTI_BLOCK" in output.read_text()
+
+
+def test_collect_skips_unparseable_blocks_when_a_commit_is_expected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    head = "a" * 40
+    output = _collect_env(tmp_path, monkeypatch, head)
+    truncated = {
+        "body": "<!-- receipt:v1 -->\n```json\n{not json}\n```\n",
+        "author_association": "OWNER",
+        "user": {"login": "operator"},
+    }
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: [truncated, _receipt_comment(head)])
+
+    assert workflow.collect() == 0
+    assert "found=true" in output.read_text()
+
+
+def test_collect_reports_the_parse_error_when_every_block_is_malformed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = _collect_env(tmp_path, monkeypatch, "a" * 40)
+    broken = {
+        "body": '<!-- receipt:v1 -->\n```json\n{"schema":"receipt/v1"}\n```\n',
+        "author_association": "OWNER",
+        "user": {"login": "operator"},
+    }
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: [broken])
+
+    assert workflow.collect() == 0
+    text = output.read_text()
+    assert "found=false" in text
+    assert "code=E_BAD_FENCE" in text
