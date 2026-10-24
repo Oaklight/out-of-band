@@ -88,6 +88,7 @@ jobs:
           RECEIPT: ${{ inputs.receipt }}
           TRUSTED: ${{ inputs.trusted-authors }}
           COMMIT: ${{ inputs.commit }}
+          JOB: ${{ inputs.job }}
         run: python -m outboard.workflow collect
 
       - name: Verify receipt

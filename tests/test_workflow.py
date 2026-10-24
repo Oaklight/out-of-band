@@ -151,16 +151,18 @@ def test_publish_creates_a_check_run(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert "verdict=verified" in (tmp_path / "out").read_text()
 
 
-def _receipt_comment(commit: str, signature: str = "AAA") -> dict:
+def _receipt_comment(commit: str, signature: str = "AAA", job: str = "smoke") -> dict:
     payload = json.dumps(
-        {"schema": "receipt/v1", "commit": commit, "job": "smoke", "result": "pass"},
+        {"schema": "receipt/v1", "commit": commit, "job": job, "result": "pass"},
         separators=(",", ":"),
     )
     body = f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\n{signature}\n```\n"
     return {"body": body, "author_association": "OWNER", "user": {"login": "operator"}}
 
 
-def _collect_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, commit: str) -> Path:
+def _collect_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, commit: str, job: str = ""
+) -> Path:
     output = tmp_path / "out"
     monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
     monkeypatch.setenv("GITHUB_OUTPUT", str(output))
@@ -169,6 +171,7 @@ def _collect_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, commit: str) -
     monkeypatch.setenv("PR", "7")
     monkeypatch.setenv("TRUSTED", "")
     monkeypatch.setenv("COMMIT", commit)
+    monkeypatch.setenv("JOB", job)
     return output
 
 
@@ -198,6 +201,37 @@ def test_collect_reports_wrong_commit_when_only_stale_receipts_exist(
     text = output.read_text()
     assert "found=false" in text
     assert "code=E_WRONG_COMMIT" in text
+
+
+def test_collect_selects_the_block_for_the_expected_job(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two jobs may attest one commit; each gate reads only its own block."""
+    head = "a" * 40
+    output = _collect_env(tmp_path, monkeypatch, head, job="alpha")
+    comments = [
+        _receipt_comment(head, "AAA", job="alpha"),
+        _receipt_comment(head, "BBB", job="beta"),
+    ]
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: comments)
+
+    assert workflow.collect() == 0
+    assert "found=true" in output.read_text()
+    assert '"job":"alpha"' in (tmp_path / "receipt.md").read_text()
+
+
+def test_collect_reports_wrong_job_when_only_other_jobs_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    head = "a" * 40
+    output = _collect_env(tmp_path, monkeypatch, head, job="gamma")
+    comments = [_receipt_comment(head, "AAA", job="alpha")]
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: comments)
+
+    assert workflow.collect() == 0
+    text = output.read_text()
+    assert "found=false" in text
+    assert "code=E_WRONG_JOB" in text
 
 
 def test_collect_still_rejects_disagreeing_blocks_for_the_same_commit(
