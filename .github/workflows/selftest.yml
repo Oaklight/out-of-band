@@ -245,6 +245,7 @@ jobs:
           COMMENT: ${{ needs.verify-comment.outputs.verdict }}
           COMMENT_SECONDARY: ${{ needs.verify-comment-secondary.outputs.verdict }}
           COMMENT_MISSING_JOB: ${{ needs.verify-comment-missing-job.outputs.verdict }}
+          EVENT: ${{ github.event_name }}
         run: |
           status=0
           check() {
@@ -260,7 +261,11 @@ jobs:
           check altered          "$ALTERED"      "unverified"
           check stranger         "$STRANGER"     "unverified"
           check not-required     "$NOT_REQUIRED" "not applicable"
-          check comment          "$COMMENT"      "verified"
-          check comment-secondary "$COMMENT_SECONDARY" "verified"
-          check comment-missing-job "$COMMENT_MISSING_JOB" "unverified"
+          # The comment jobs only run on a pull_request; a manual dispatch
+          # on main has none of them.
+          if [ "$EVENT" = "pull_request" ]; then
+            check comment "$COMMENT" "verified"
+            check comment-secondary "$COMMENT_SECONDARY" "verified"
+            check comment-missing-job "$COMMENT_MISSING_JOB" "unverified"
+          fi
           exit $status
