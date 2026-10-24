@@ -480,19 +480,24 @@ grant the same set.
 
 | `required` | Receipt | Verify exit | Check conclusion | Summary |
 |---|---|---|---|---|
-| true | absent | 2 | `action_required` | unverified — no receipt |
-| true | invalid | 2 | `action_required` | unverified — `<CODE>` |
+| true | absent | 2 | `failure` | unverified — no receipt |
+| true | invalid | 2 | `failure` | unverified — `<CODE>` |
 | true | valid, pass | 0 | `success` | verified |
 | true | valid, fail | 1 | `failure` | failed |
 | false | any | — | `success` | not applicable — receipt not evaluated |
 | — | — | 3 | none; the job fails | tool error |
-| true | valid | 0/1 but evidence mismatches | `action_required` | unverified — `E_EVIDENCE_MISMATCH` |
+| true | valid | 0/1 but evidence mismatches | `failure` | unverified — `E_EVIDENCE_MISMATCH` |
 
 When `required` is false the receipt is not evaluated at all. A stale failing
 receipt must not block a PR the policy already classified as not needing one.
 
 Exit 3 publishes no check. If the check name is required by branch protection,
 the merge stays blocked, which is the fail-closed result.
+
+Every `unverified` outcome uses the `failure` conclusion, so a required check is
+red as soon as the PR opens. The title and summary still say `unverified` and
+carry the error code, which keeps "not submitted" distinct from "ran and
+failed" without a third conclusion.
 
 ### 6.6 Check run
 

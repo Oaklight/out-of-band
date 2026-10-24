@@ -254,9 +254,9 @@ def _decide() -> tuple[str, str, str, bool]:
     if not required:
         return "not applicable", "OK", "success", False
     if (os.environ.get("EVIDENCE_STATUS") or "") == "invalid":
-        return "unverified", "E_EVIDENCE_MISMATCH", "action_required", False
+        return "unverified", "E_EVIDENCE_MISMATCH", "failure", False
     if not found:
-        return "unverified", resolve_code or "E_NO_BLOCK", "action_required", False
+        return "unverified", resolve_code or "E_NO_BLOCK", "failure", False
 
     raw_exit = (os.environ.get("VERIFY_EXIT") or "").strip()
     if not raw_exit:
@@ -271,7 +271,7 @@ def _decide() -> tuple[str, str, str, bool]:
     if exit_code == 1:
         return "failed", "OK", "failure", True
     if exit_code == 2:
-        return "unverified", verdict.get("code", "E_INTERNAL"), "action_required", False
+        return "unverified", verdict.get("code", "E_INTERNAL"), "failure", False
     raise OutboardError("E_INTERNAL", f"unexpected verify exit code: {exit_code}")
 
 

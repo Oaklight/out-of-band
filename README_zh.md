@@ -53,10 +53,10 @@ check ──► evidence ──► sign            PR comment / dispatch
 |---|---|---|
 | 有效，`result: pass` | 0 | `success` |
 | 有效，`result: fail` | 1 | `failure` |
-| 缺失或无效 | 2 | `action_required` |
+| 缺失或无效 | 2 | `failure` |
 | 用法错误或内部错误 | 3 | 不发布，job 失败 |
 
-没有回执就是 `unverified`，不能当成 skip。工具自身出错时，必需的检查会停在 pending，合并照样过不去。
+没有回执就是 `unverified`，不能当成 skip。工具自身出错时，必需的检查会停在 pending，合并照样过不去。所有 unverified 结果的 check 结论都是 `failure`，原因写在标题和 summary 里。
 
 ## 安装
 
