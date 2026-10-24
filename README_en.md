@@ -213,6 +213,12 @@ Publishing needs a GitHub App identity; inside Actions the automatic
 `GITHUB_TOKEN` is the Actions App. A PAT can create only commit statuses, so
 there is no CLI publish command.
 
+### Air-gapped operator hosts
+
+The signing host can have no outbound network at all. Install from the wheel
+attached to the release, carry the repository as a `git bundle`, and carry the
+receipt and evidence out by hand. See [docs/offline.md](docs/offline.md).
+
 ### Retention
 
 Checks and workflow runs follow the Actions retention setting (90 days by
