@@ -14,6 +14,10 @@
   <a href="README_en.md">English</a> | <a href="README_zh.md">中文</a>
 </p>
 
+<p align="center">
+  <a href="https://oaklight.github.io/outboard/"><strong>先看一遍导览 →</strong></a>
+</p>
+
 ## 为什么需要它
 
 有些检查，GitHub 的 runner 跑不了：需要某种加速器、有授权的工具链、只能从内网访问的数据库，或者一台几个人共用的实验机。检查本身没问题，只是搬不到 GitHub 上。

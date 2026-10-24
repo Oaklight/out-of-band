@@ -14,6 +14,10 @@ Out-of-band receipts for CI gates.
   <a href="README_en.md">English</a> | <a href="README_zh.md">中文</a>
 </p>
 
+<p align="center">
+  <a href="https://oaklight.github.io/outboard/"><strong>Take the guided tour →</strong></a>
+</p>
+
 ## Why this exists
 
 Picture a pull request that only one machine can really test. The code needs a

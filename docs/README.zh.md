@@ -6,6 +6,8 @@
 
 下面按你手上的事来选。
 
+想先看一遍再读细节？[走一遍导览](https://oaklight.github.io/outboard/)。
+
 | 你的场景 | 读这篇 |
 | --- | --- |
 | 补丁测过才能合并 | [补丁门禁](scenario-patch-gate.zh.md) |
