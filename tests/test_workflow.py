@@ -396,3 +396,30 @@ def test_decide_rejects_mismatched_evidence(
     monkeypatch.setenv("EVIDENCE_STATUS", "invalid")
     (tmp_path / "verdict.json").write_text('{"code":"OK"}')
     assert workflow._decide() == ("unverified", "E_EVIDENCE_MISMATCH", "failure", False)
+
+
+def test_publish_can_compute_a_verdict_without_reporting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[tuple[str, ...], str | None]] = []
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/widget")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "out"))
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary"))
+    monkeypatch.setenv("REQUIRED", "true")
+    monkeypatch.setenv("FOUND", "false")
+    monkeypatch.setenv("REPORT", "false")
+    monkeypatch.setenv("COMMIT", "a" * 40)
+    monkeypatch.setenv("JOB", "smoke")
+    monkeypatch.setenv("CHECK_NAME", "gate")
+    monkeypatch.setenv("PR", "7")
+
+    def fake_gh(*args: str, stdin: str | None = None) -> str:
+        calls.append((args, stdin))
+        return ""
+
+    monkeypatch.setattr(workflow, "_gh", fake_gh)
+    assert workflow.publish() == 0
+    assert calls == []
+    assert "verdict=unverified" in (tmp_path / "out").read_text()
+    assert "unverified" in (tmp_path / "summary").read_text()

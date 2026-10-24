@@ -40,6 +40,10 @@ inputs:
     description: HTTPS URL of a .tar.gz evidence bundle; empty checks the digest only
     required: false
     default: ""
+  report:
+    description: Publish a check run; false computes the verdict without one
+    required: false
+    default: "true"
   version:
     description: Version of out-of-band to install; empty installs nothing
     required: false
@@ -182,4 +186,5 @@ runs:
         JOB: ${{ inputs.job }}
         PR: ${{ inputs.pr }}
         CHECK_NAME: ${{ inputs.check-name }}
+        REPORT: ${{ inputs.report }}
       run: python -m oob.workflow publish

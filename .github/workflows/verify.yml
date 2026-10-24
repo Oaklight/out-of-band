@@ -39,6 +39,14 @@ on:
         description: HTTPS URL of a .tar.gz evidence bundle; empty means digest only
         type: string
         default: ""
+      report:
+        description: Publish a check run; false computes the verdict without one
+        type: boolean
+        default: true
+      source-ref:
+        description: Internal checkout ref for the tool repository's self-test; ignored for other repositories
+        type: string
+        default: ""
     outputs:
       verdict:
         description: verified, failed, unverified, or not applicable
@@ -66,7 +74,10 @@ jobs:
       - name: Check out the caller's default branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.repository.default_branch || github.ref_name }}
+          # The tool repository's self-test points this at the pull request head
+          # so it exercises unreleased code. Other repositories always get the
+          # default branch, whatever source-ref says.
+          ref: ${{ github.repository == 'Oaklight/out-of-band' && inputs['source-ref'] || github.event.repository.default_branch || github.ref_name }}
           persist-credentials: false
 
       - uses: actions/setup-python@v5
@@ -155,4 +166,5 @@ jobs:
           JOB: ${{ inputs.job }}
           PR: ${{ inputs.pr }}
           CHECK_NAME: ${{ inputs.check-name }}
+          REPORT: ${{ inputs.report }}
         run: python -m oob.workflow publish
