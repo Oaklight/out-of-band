@@ -88,6 +88,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -104,6 +105,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -121,6 +123,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -138,6 +141,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -155,6 +159,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: "0"
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -197,6 +202,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
@@ -214,6 +220,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest-secondary
@@ -231,6 +238,7 @@ jobs:
     uses: ./.github/workflows/verify.yml
     with:
       source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      require-evidence: false
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest-missing
@@ -262,6 +270,7 @@ jobs:
           receipt: ${{ needs.operator.outputs.valid }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
+          require-evidence: "false"
 
   action-fail:
     needs: operator
@@ -287,6 +296,7 @@ jobs:
           receipt: ${{ needs.operator.outputs.failing }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
+          require-evidence: "false"
 
   action-altered:
     needs: operator
@@ -312,6 +322,7 @@ jobs:
           receipt: ${{ needs.operator.outputs.altered }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
+          require-evidence: "false"
 
   action-stranger:
     needs: operator
@@ -337,6 +348,7 @@ jobs:
           receipt: ${{ needs.operator.outputs.stranger }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
+          require-evidence: "false"
 
   action-not-required:
     needs: operator
@@ -362,6 +374,7 @@ jobs:
           receipt: ${{ needs.operator.outputs.altered }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
+          require-evidence: "false"
 
   action-comment:
     needs: [operator, comment]
@@ -388,6 +401,7 @@ jobs:
           allowed-signers: .github/selftest_allowed_signers
           trusted-authors: "github-actions[bot]"
           source: .
+          require-evidence: "false"
 
   action-comment-secondary:
     needs: [operator, comment]
@@ -414,6 +428,7 @@ jobs:
           allowed-signers: .github/selftest_allowed_signers
           trusted-authors: "github-actions[bot]"
           source: .
+          require-evidence: "false"
 
   action-comment-missing-job:
     needs: [operator, comment]
@@ -441,6 +456,49 @@ jobs:
           allowed-signers: .github/selftest_allowed_signers
           trusted-authors: "github-actions[bot]"
           source: .
+          require-evidence: "false"
+
+  verify-no-evidence:
+    needs: operator
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    uses: ./.github/workflows/verify.yml
+    with:
+      pr: "0"
+      commit: ${{ needs.operator.outputs.commit }}
+      job: selftest
+      check-name: oob-selftest/no evidence
+      receipt: ${{ needs.operator.outputs.valid }}
+      allowed-signers: .github/selftest_allowed_signers
+      source-ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      report: false
+
+  action-no-evidence:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest
+          check-name: oob-action/no evidence
+          receipt: ${{ needs.operator.outputs.valid }}
+          allowed-signers: .github/selftest_allowed_signers
+          report: "false"
+          source: .
 
   assert:
     needs:
@@ -460,6 +518,8 @@ jobs:
       - action-comment
       - action-comment-secondary
       - action-comment-missing-job
+      - verify-no-evidence
+      - action-no-evidence
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -481,6 +541,8 @@ jobs:
           ACTION_COMMENT: ${{ needs.action-comment.outputs.verdict }}
           ACTION_COMMENT_SECONDARY: ${{ needs.action-comment-secondary.outputs.verdict }}
           ACTION_COMMENT_MISSING_JOB: ${{ needs.action-comment-missing-job.outputs.verdict }}
+          NO_EVIDENCE: ${{ needs.verify-no-evidence.outputs.verdict }}
+          ACTION_NO_EVIDENCE: ${{ needs.action-no-evidence.outputs.verdict }}
           EVENT: ${{ github.event_name }}
         run: |
           status=0
@@ -502,6 +564,8 @@ jobs:
           check action-altered   "$ACTION_ALTERED" "unverified"
           check action-stranger  "$ACTION_STRANGER" "unverified"
           check action-not-required "$ACTION_NOT_REQUIRED" "not applicable"
+          check no-evidence      "$NO_EVIDENCE"   "unverified"
+          check action-no-evidence "$ACTION_NO_EVIDENCE" "unverified"
           # The comment jobs only run on a pull_request; a manual dispatch
           # on main has none of them.
           if [ "$EVENT" = "pull_request" ]; then

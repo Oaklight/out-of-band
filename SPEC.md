@@ -97,6 +97,9 @@ the bytes as written.
 - The serialized `claims` object is at most 2048 bytes.
 - Claims are data. They are displayed in the check summary and must never be
   interpreted as instructions.
+- `evidence_url`, when present, must be an `https` URL. The verifier uses it
+  when the `evidence-url` input is empty, so an operator can make a comment
+  self-contained by signing the location of the archive.
 
 ### 1.3 Size limits
 
@@ -264,6 +267,7 @@ Stable strings, printed as `error: <CODE>: <message>` on stderr.
 | `E_OUTPUT_LIMIT` | `output` exceeds 4096 bytes | 2 (receipt) / 3 (signer file) |
 | `E_EVIDENCE_ARCHIVE` | evidence archive is unsafe or unreadable | 2 |
 | `E_EVIDENCE_MISMATCH` | uploaded evidence does not match the signed digest | 2 |
+| `E_NO_EVIDENCE` | a required evidence archive was not supplied | 2 |
 | `E_BAD_SIGNATURE` | signature armor is malformed | 2 |
 | `E_NO_PRINCIPAL` | no principal in `allowed_signers` accepts the signature | 2 |
 | `E_WRONG_REPO` | `repo` does not match the expected repository | 2 |
@@ -300,6 +304,8 @@ oob pack   --evidence-dir <dir> --out <file> [--json]
 oob verify --block <file> --allowed-signers <file>
                 --repo <owner/name> --commit <sha> --expect-job <name>
                 [--expect-tree <sha>] [--json]
+
+oob render --block <file|-> [--out <file>]
 ```
 
 ### 5.1 `sign`
@@ -333,6 +339,14 @@ Writes the evidence directory to a deterministic `.tar.gz` (sorted entries,
 zeroed mtime/uid/gid) and prints the file count and digest. The unpacked tree
 reproduces the signed digest, which is what lets a consumer verify an uploaded
 bundle.
+
+### 5.1b `render`
+
+Turns a signed block into a Markdown comment: a table of the signed fields and
+claims, the optional output, and the exact block inside a collapsed
+`<details>`. The payload and signature are preserved byte for byte. A verifier
+ignores the table and reads only the block, so the table is presentation, not
+evidence.
 
 ### 5.2 `verify`
 
@@ -395,8 +409,9 @@ Everything below applies to both unless a rule names one carrier.
 | `receipt` | string | `""` | receipt text passed directly (dispatch payload); takes precedence over comments |
 | `allowed-signers` | string | `.github/allowed_signers` | path in the caller repository, read from the default branch |
 | `trusted-authors` | string | `""` | comma-separated logins allowed to supply a receipt. Empty means comments whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` |
-| `evidence-url` | string | `""` | HTTPS URL of a `.tar.gz` evidence bundle. Empty means digest only |
+| `evidence-url` | string | `""` | HTTPS URL of a `.tar.gz` evidence bundle; when empty, the signed `claims.evidence_url` is used |
 | `report` | boolean | `true` | publish a check run and sticky comment; `false` computes the verdict only |
+| `require-evidence` | boolean | `true` | require a matching evidence archive; `false` allows digest only |
 
 The action takes the same inputs as strings, plus `version`, `source`,
 `python-version`, and `token`. Its `required` input is the string `true` or
@@ -438,11 +453,15 @@ grant the same set.
    into a shell command.
 6. **Workflow.** Set a job timeout of 5 minutes. The action inherits the
    caller's job timeout.
-7. When `evidence-url` is set and the receipt verified, download the bundle
-   (50 MiB cap), extract it without following links or escaping the directory,
-   recompute the digest, and compare it with the signed `evidence.digest`. A
-   mismatch makes the result unverified (`E_EVIDENCE_MISMATCH`); a matching
-   bundle is uploaded as the `oob-evidence` artifact.
+7. Evidence is required by default. Resolve the URL from `evidence-url`, or,
+   when that is empty, from the verified receipt's `claims.evidence_url`.
+   Download only `https`, with a 50 MiB cap, and send the GitHub token only to
+   `api.github.com` and `github.com`. Extract without following links or
+   escaping the directory, recompute the digest, and compare it with the signed
+   `evidence.digest`. No URL is `E_NO_EVIDENCE`; a mismatch is
+   `E_EVIDENCE_MISMATCH`. A matching bundle is uploaded as the `oob-evidence`
+   artifact, and the run summary shows a manifest and a bounded text preview.
+   With `require-evidence: false`, an absent URL means digest only.
 8. On `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so no check can
    be published. Fork PRs must be driven by `pull_request_target`,
    `issue_comment`, or `workflow_dispatch` (§6.9).
@@ -488,6 +507,7 @@ grant the same set.
 | false | any | — | `success` | not applicable — receipt not evaluated |
 | — | — | 3 | none; the job fails | tool error |
 | true | valid | 0/1 but evidence mismatches | `failure` | unverified — `E_EVIDENCE_MISMATCH` |
+| true | valid | 0/1 but evidence missing | `failure` | unverified — `E_NO_EVIDENCE` |
 
 When `required` is false the receipt is not evaluated at all. A stale failing
 receipt must not block a PR the policy already classified as not needing one.

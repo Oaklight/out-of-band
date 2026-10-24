@@ -21,9 +21,8 @@ on:
         required: true
         type: string
       evidence_url:
-        description: HTTPS URL of an evidence .tar.gz; empty checks the digest only
-        required: false
-        default: ""
+        description: HTTPS URL of the evidence .tar.gz
+        required: true
 
 permissions:
   contents: read

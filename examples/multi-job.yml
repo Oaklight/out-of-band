@@ -1,3 +1,5 @@
+# Evidence is required by default: the receipt must carry claims.evidence_url,
+# or the caller must pass evidence-url.
 # Two independent checks on one commit.
 #
 # Each job receives its own signed receipt and publishes its own check run, so

@@ -1,3 +1,5 @@
+# Evidence is required by default: the receipt must carry claims.evidence_url,
+# or the caller must pass evidence-url.
 # Require a receipt only when the pull request touches patches/.
 #
 # The policy job reads the changed file list through the API. Pull requests

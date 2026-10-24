@@ -44,6 +44,10 @@ inputs:
     description: Publish a check run; false computes the verdict without one
     required: false
     default: "true"
+  require-evidence:
+    description: Require an evidence archive whose digest matches the receipt
+    required: false
+    default: "true"
   version:
     description: Version of out-of-band to install; empty installs nothing
     required: false
@@ -139,16 +143,31 @@ runs:
 
     - name: Fetch and check evidence
       id: evidence
-      if: ${{ inputs.required == 'true' && steps.resolve.outputs.found == 'true' && inputs.evidence-url != '' && (steps.verify.outputs.exit == '0' || steps.verify.outputs.exit == '1') }}
+      if: ${{ inputs.required == 'true' && steps.resolve.outputs.found == 'true' && (inputs.evidence-url != '' || inputs['require-evidence'] == 'true') && (steps.verify.outputs.exit == '0' || steps.verify.outputs.exit == '1') }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
         URL: ${{ inputs.evidence-url }}
       run: |
         set +e
+        url="$URL"
+        if [ -z "$url" ]; then
+          url=$(python -m oob.workflow evidence-url --receipt "$RUNNER_TEMP/receipt.md" 2>/dev/null)
+        fi
+        if [ -z "$url" ]; then
+          echo "status=missing" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        # Only send the GitHub token to GitHub. Any other host must serve the
+        # archive publicly or with its own signed URL.
+        auth=()
+        case "$url" in
+          https://api.github.com/*|https://github.com/*)
+            auth=(-H "Authorization: Bearer $GH_TOKEN")
+            ;;
+        esac
         curl -fsSL --max-time 120 --max-filesize 52428800 \
-          -H "Authorization: Bearer $GH_TOKEN" \
-          -o "$RUNNER_TEMP/evidence.tgz" "$URL"
+          "${auth[@]}" -o "$RUNNER_TEMP/evidence.tgz" "$url"
         if [ $? -ne 0 ]; then
           echo "status=invalid" >> "$GITHUB_OUTPUT"
           exit 0
@@ -159,6 +178,8 @@ runs:
           --out "$RUNNER_TEMP/evidence"
         if [ $? -eq 0 ]; then
           echo "status=ok" >> "$GITHUB_OUTPUT"
+          python -m oob.workflow evidence-display --dir "$RUNNER_TEMP/evidence" \
+            >> "$GITHUB_STEP_SUMMARY"
         else
           echo "status=invalid" >> "$GITHUB_OUTPUT"
         fi
@@ -187,4 +208,5 @@ runs:
         PR: ${{ inputs.pr }}
         CHECK_NAME: ${{ inputs.check-name }}
         REPORT: ${{ inputs.report }}
+        REQUIRE_EVIDENCE: ${{ inputs['require-evidence'] }}
       run: python -m oob.workflow publish

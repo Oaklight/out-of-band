@@ -8,6 +8,7 @@ App identity, so publishing stays in the workflow (SPEC.md §5.3).
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -25,6 +26,9 @@ from .evidence import digest_directory
 MAX_COMMENTS = 5000
 MAX_EVIDENCE_BYTES = 50 * 1024 * 1024
 MAX_EVIDENCE_FILES = 1000
+MAX_DISPLAY_FILES = 20
+MAX_DISPLAY_BYTES = 256 * 1024
+MAX_DISPLAY_FILE = 32 * 1024
 # Installation tokens cannot call GET /user; in Actions the comment author is
 # always the Actions app bot.
 BOT_LOGIN = "github-actions[bot]"
@@ -249,12 +253,11 @@ def _summary(
 def _decide() -> tuple[str, str, str, bool]:
     required = (os.environ.get("REQUIRED") or "true").lower() == "true"
     found = (os.environ.get("FOUND") or "false").lower() == "true"
+    require_evidence = (os.environ.get("REQUIRE_EVIDENCE") or "true").lower() == "true"
     resolve_code = os.environ.get("RESOLVE_CODE") or ""
 
     if not required:
         return "not applicable", "OK", "success", False
-    if (os.environ.get("EVIDENCE_STATUS") or "") == "invalid":
-        return "unverified", "E_EVIDENCE_MISMATCH", "failure", False
     if not found:
         return "unverified", resolve_code or "E_NO_BLOCK", "failure", False
 
@@ -266,12 +269,19 @@ def _decide() -> tuple[str, str, str, bool]:
         raise OutboardError("E_INTERNAL", "verification could not run; see the verify step")
 
     verdict = json.loads((Path(os.environ["RUNNER_TEMP"]) / "verdict.json").read_text())
+    if exit_code == 2:
+        return "unverified", verdict.get("code", "E_INTERNAL"), "failure", False
+
+    evidence_status = (os.environ.get("EVIDENCE_STATUS") or "").strip()
+    if evidence_status == "invalid":
+        return "unverified", "E_EVIDENCE_MISMATCH", "failure", False
+    if require_evidence and evidence_status != "ok":
+        return "unverified", "E_NO_EVIDENCE", "failure", False
+
     if exit_code == 0:
         return "verified", "OK", "success", True
     if exit_code == 1:
         return "failed", "OK", "failure", True
-    if exit_code == 2:
-        return "unverified", verdict.get("code", "E_INTERNAL"), "failure", False
     raise OutboardError("E_INTERNAL", f"unexpected verify exit code: {exit_code}")
 
 
@@ -287,7 +297,16 @@ def publish() -> int:
 
     claims, output_block = _receipt_display(temp / "receipt.md") if verified else ("", "")
     evidence_status = os.environ.get("EVIDENCE_STATUS") or ""
-    evidence_label = {"ok": "uploaded", "invalid": "invalid"}.get(evidence_status, "digest only")
+    evidence_label = {
+        "ok": "uploaded",
+        "invalid": "invalid",
+        "missing": "required, missing",
+    }.get(
+        evidence_status,
+        "required, missing"
+        if (os.environ.get("REQUIRE_EVIDENCE") or "true").lower() == "true"
+        else "digest only",
+    )
     summary = _summary(state, code, job, commit, source, claims, evidence_label)
 
     if report:
@@ -405,6 +424,63 @@ def evidence(receipt_path: str, archive_path: str, out_dir: str) -> int:
     return 0
 
 
+def evidence_url_from_receipt(receipt_path: str) -> int:
+    """Print claims.evidence_url from a receipt when it is an https URL."""
+    payload, _ = extract(Path(receipt_path).read_text(encoding="utf-8"))
+    data = json.loads(payload)
+    claims = data.get("claims") if isinstance(data, dict) else None
+    url = claims.get("evidence_url") if isinstance(claims, dict) else None
+    if not isinstance(url, str) or not url.startswith("https://"):
+        return 1
+    print(url)
+    return 0
+
+
+def _md_cell(text: str) -> str:
+    return html.escape(text, quote=False).replace("|", "&#124;")
+
+
+def evidence_markdown(directory: str) -> int:
+    """Print a bounded Markdown manifest and text preview for the run summary."""
+    root = Path(directory)
+    paths = sorted(path for path in root.rglob("*") if path.is_file())
+    lines = ["### evidence", "", "| file | bytes | sha256 |", "| --- | --- | --- |"]
+    budget = MAX_DISPLAY_BYTES
+    previews = 0
+    for path in paths:
+        rel = path.relative_to(root).as_posix()
+        data = path.read_bytes()
+        digest = hashlib.sha256(data).hexdigest()
+        lines.append(
+            f"| <code>{_md_cell(rel)}</code> | {len(data)} | <code>{digest[:16]}…</code> |"
+        )
+        if previews >= MAX_DISPLAY_FILES or budget <= 0 or b"\x00" in data:
+            continue
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        cut = min(len(text), MAX_DISPLAY_FILE, budget)
+        if cut <= 0:
+            continue
+        shown = text[:cut]
+        note = "\n… truncated" if cut < len(text) else ""
+        lines += [
+            "",
+            f"<details><summary><code>{_md_cell(rel)}</code></summary>",
+            "",
+            f"<pre>{html.escape(shown)}{note}</pre>",
+            "",
+            "</details>",
+        ]
+        budget -= cut
+        previews += 1
+    if len(paths) > previews:
+        lines += ["", f"{len(paths) - previews} file(s) are in the artifact but not previewed."]
+    print("\n".join(lines))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     if args == ["collect"]:
@@ -418,7 +494,20 @@ def main(argv: list[str] | None = None) -> int:
         parser.add_argument("--out", required=True)
         parsed, _ = parser.parse_known_args(args[1:])
         return evidence(parsed.receipt, parsed.archive, parsed.out)
-    print("usage: python -m oob.workflow collect|publish", file=sys.stderr)
+    if args and args[0] == "evidence-url":
+        parser = argparse.ArgumentParser(prog="oob.workflow evidence-url", add_help=False)
+        parser.add_argument("--receipt", required=True)
+        parsed, _ = parser.parse_known_args(args[1:])
+        return evidence_url_from_receipt(parsed.receipt)
+    if args and args[0] == "evidence-display":
+        parser = argparse.ArgumentParser(prog="oob.workflow evidence-display", add_help=False)
+        parser.add_argument("--dir", required=True)
+        parsed, _ = parser.parse_known_args(args[1:])
+        return evidence_markdown(parsed.dir)
+    print(
+        "usage: python -m oob.workflow collect|publish|evidence|evidence-url|evidence-display",
+        file=sys.stderr,
+    )
     return EXIT_ERROR
 
 

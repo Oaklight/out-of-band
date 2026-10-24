@@ -12,6 +12,7 @@ from pathlib import Path
 from . import __version__
 from .errors import EXIT_ERROR, OutboardError
 from .evidence import pack_directory
+from .render import render
 from .sign import sign
 from .verify import verify
 
@@ -65,6 +66,12 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--expect-job", required=True)
     verify_parser.add_argument("--expect-tree")
     verify_parser.add_argument("--json", action="store_true", help="one machine-readable line")
+
+    render_parser = sub.add_parser("render", help="render a signed block as a Markdown comment")
+    render_parser.add_argument(
+        "--block", required=True, help="file holding the block, or - for stdin"
+    )
+    render_parser.add_argument("--out", type=Path, help="write the comment here instead of stdout")
     return parser
 
 
@@ -136,6 +143,18 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "verify":
             return _verify_command(args)
+        if args.command == "render":
+            text = (
+                sys.stdin.read()
+                if args.block == "-"
+                else Path(args.block).read_text(encoding="utf-8")
+            )
+            comment = render(text)
+            if args.out:
+                args.out.write_text(comment, encoding="utf-8")
+            else:
+                sys.stdout.write(comment)
+            return 0
         raise OutboardError("E_USAGE", f"unknown command: {args.command}")
     except OutboardError as exc:
         print(f"error: {exc.code}: {exc.message}", file=sys.stderr)
