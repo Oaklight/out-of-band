@@ -138,7 +138,7 @@ the same line they conflict like any other change, so land them one at a time.
 
 Options for the ref:
 
-- **Full commit SHA** (recommended): immutable. Add a `# v0.4.0` comment so a
+- **Full commit SHA** (recommended): immutable. Add a `# v0.4.1` comment so a
   tool knows the version, and let Dependabot open the bump PR.
 - **Release tag**: shorter, but a tag can be moved to another commit.
 - **Default branch**: always current, never reviewed. Do not use it for a gate.

@@ -82,28 +82,28 @@ One file is usually enough. Each release carries `oob-<version>.pyz`: a
 zipapp holding the package and an entry point, needing only Python 3.10+.
 
 ```bash
-scp oob-0.4.0.pyz host:
-ssh host python3 oob-0.4.0.pyz --version
+scp oob-0.4.1.pyz host:
+ssh host python3 oob-0.4.1.pyz --version
 ```
 
 It behaves like the installed command, so every example below works with
-`python3 oob-0.4.0.pyz` in place of `oob`. Run it as `./oob-0.4.0.pyz` and the
+`python3 oob-0.4.1.pyz` in place of `oob`. Run it as `./oob-0.4.1.pyz` and the
 POSIX launcher picks the first Python 3.10+ it finds; if none exists it says so
 instead of failing with a syntax error. Windows has no shebang, so use
-`python oob-0.4.0.pyz`.
+`python oob-0.4.1.pyz`.
 
 If the site prefers a normal install, the wheel is pure Python
 (`py3-none-any`), so any 3.10+ interpreter can use it. On a connected machine:
 
 ```bash
-pip download out-of-band==0.4.0 -d wheelhouse
+pip download out-of-band==0.4.1 -d wheelhouse
 ```
 
 Copy `wheelhouse/` over, then:
 
 ```bash
 python3 -m venv ~/out-of-band
-~/out-of-band/bin/pip install --no-index --find-links wheelhouse out-of-band==0.4.0
+~/out-of-band/bin/pip install --no-index --find-links wheelhouse out-of-band==0.4.1
 ~/out-of-band/bin/oob --version
 ```
 

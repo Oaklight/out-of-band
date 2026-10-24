@@ -60,23 +60,23 @@ workflow 是从 GitHub 的 runner 去取 `evidence-url` 的，不是从你的机
 通常一个文件就够了。每个 release 都带 `oob-<version>.pyz`：一个 zipapp，内含包和入口，只需要 Python 3.10+。
 
 ```bash
-scp oob-0.4.0.pyz host:
-ssh host python3 oob-0.4.0.pyz --version
+scp oob-0.4.1.pyz host:
+ssh host python3 oob-0.4.1.pyz --version
 ```
 
-它的用法和装好的命令一样，下面所有例子都能把 `oob` 换成 `python3 oob-0.4.0.pyz`。直接执行 `./oob-0.4.0.pyz` 时，里面的 POSIX 启动脚本会挑第一个 Python 3.10+；一个都没有就明确报错，不会抛出一句看不懂的语法错误。Windows 没有 shebang，用 `python oob-0.4.0.pyz`。
+它的用法和装好的命令一样，下面所有例子都能把 `oob` 换成 `python3 oob-0.4.1.pyz`。直接执行 `./oob-0.4.1.pyz` 时，里面的 POSIX 启动脚本会挑第一个 Python 3.10+；一个都没有就明确报错，不会抛出一句看不懂的语法错误。Windows 没有 shebang，用 `python oob-0.4.1.pyz`。
 
 如果站点更习惯正常安装，wheel 是纯 Python（`py3-none-any`），任何 3.10+ 解释器都能用。在能上网的机器上：
 
 ```bash
-pip download out-of-band==0.4.0 -d wheelhouse
+pip download out-of-band==0.4.1 -d wheelhouse
 ```
 
 把 `wheelhouse/` 拷过去，然后：
 
 ```bash
 python3 -m venv ~/out-of-band
-~/out-of-band/bin/pip install --no-index --find-links wheelhouse out-of-band==0.4.0
+~/out-of-band/bin/pip install --no-index --find-links wheelhouse out-of-band==0.4.1
 ~/out-of-band/bin/oob --version
 ```
 

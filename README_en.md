@@ -186,7 +186,7 @@ jobs:
 
   verified:
     needs: policy
-    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.0
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.1
     with:
       pr: ${{ needs.policy.outputs.pr }}
       commit: ${{ needs.policy.outputs.commit }}
@@ -210,7 +210,7 @@ Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
 `allowed-signers`, `trusted-authors`, `evidence-url`. Output: `verdict`.
 
 Pin `uses:` by full commit SHA and keep the version in a comment
-(`# v0.4.0`); Dependabot can open the bump PR. A tag can be moved.
+(`# v0.4.1`); Dependabot can open the bump PR. A tag can be moved.
 
 ### Uploading evidence
 

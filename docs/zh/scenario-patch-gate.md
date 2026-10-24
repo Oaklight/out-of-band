@@ -120,7 +120,7 @@ gh pr comment 5 --body-file receipt.md
 
 ref 有几种选法：
 
-- **完整 commit SHA**（推荐）：不可变。后面加一句 `# v0.4.0` 注释，让工具知道版本，并用 Dependabot 开升级 PR。
+- **完整 commit SHA**（推荐）：不可变。后面加一句 `# v0.4.1` 注释，让工具知道版本，并用 Dependabot 开升级 PR。
 - **release tag**：短一些，但 tag 可以被挪到别的 commit。
 - **默认分支**：永远最新，也永远没人审。门禁不要这么用。
 - **本地拷贝**（`uses: ./.github/workflows/verify.yml`）：没有外部 pin，但验证器和它的升级从此归你维护。

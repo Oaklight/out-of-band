@@ -18,14 +18,21 @@ jobs:
           python-version: "3.12"
       - run: pip install build
       - run: python -m build
-      - run: python scripts/build_zipapp.py
+      - name: Build and version the single-file archive
+        run: |
+          python scripts/build_zipapp.py
+          version=$(python -c 'import sys; sys.path.insert(0, "src"); from oob import __version__; print(__version__)')
+          mv dist/oob.pyz "dist/oob-${version}.pyz"
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: |
             dist/*.whl
             dist/*.tar.gz
-            dist/oob.pyz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pyz
+          path: dist/*.pyz
 
   testpypi:
     if: github.event_name == 'workflow_dispatch'
@@ -57,3 +64,24 @@ jobs:
           name: dist
           path: dist
       - uses: pypa/gh-action-pypi-publish@release/v1
+
+  release-assets:
+    if: github.event_name == 'release'
+    needs: [build, pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: pyz
+          path: dist
+      - name: Attach the artifacts to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/* --clobber
