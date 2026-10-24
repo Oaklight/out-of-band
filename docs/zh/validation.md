@@ -10,7 +10,7 @@
 
 | 检查项 | 结果 |
 |---|---|
-| 在空的网络命名空间里执行 `outboard sign`（`unshare -n`） | 退出码 0，得到有效块 |
+| 在空的网络命名空间里执行 `oob sign`（`unshare -n`） | 退出码 0，得到有效块 |
 | 对字面 payload 离线执行 `ssh-keygen -Y verify` | 退出码 0 |
 | 机器上的 GitHub 凭据 | 没有：无 `gh` 配置，环境中没有 `GH_TOKEN` / `GITHUB_TOKEN` |
 | 流程需要的入站监听 | 没有；每一步都是本地读取，或一次出站 HTTPS 请求 |
@@ -37,7 +37,7 @@ printf '{"passed":true}\n' > "$WORK/evidence/nested/result.json"
 ssh-keygen -q -t ed25519 -N "" -f "$WORK/keys/op_key"
 
 # 完全没有网络命名空间。
-unshare -n env PYTHONPATH=/path/to/outboard/src python3 -m outboard.cli sign \
+unshare -n env PYTHONPATH=/path/to/out-of-band/src python3 -m oob.cli sign \
   --job smoke --commit "$COMMIT" --result pass \
   --evidence-dir "$WORK/evidence" --key "$WORK/keys/op_key" > "$WORK/block.md"
 

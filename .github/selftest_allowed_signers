@@ -1,4 +1,4 @@
 # Public key for the in-repo self-test only.
-# The private key lives in the OUTBOARD_SELFTEST_KEY Actions secret.
+# The private key lives in the OOB_SELFTEST_KEY Actions secret (old name: OUTBOARD_SELFTEST_KEY).
 # It grants nothing outside this fixture.
-selftest ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKOCCoVG2A8aWySVdouduR+7+mRDgZofzrba8TKp1p9l outboard selftest
+selftest ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKOCCoVG2A8aWySVdouduR+7+mRDgZofzrba8TKp1p9l oob selftest

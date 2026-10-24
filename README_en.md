@@ -1,12 +1,11 @@
-<h1 align="center">outboard</h1>
+<h1 align="center">out-of-band</h1>
 
 <p align="center">Out-of-band receipts for CI gates.</p>
 
 <p align="center">
-  <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/v/outboard?color=green" alt="PyPI"></a>
-  <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/pyversions/outboard?color=blue" alt="Python"></a>
-  <a href="https://github.com/Oaklight/outboard/releases/latest"><img src="https://img.shields.io/github/v/release/Oaklight/outboard?color=green" alt="Release"></a>
-  <a href="https://github.com/Oaklight/outboard/actions/workflows/ci.yml"><img src="https://github.com/Oaklight/outboard/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/out-of-band/"><img src="https://img.shields.io/pypi/v/out-of-band?color=green" alt="PyPI"></a>
+  <a href="https://github.com/Oaklight/out-of-band/releases/latest"><img src="https://img.shields.io/github/v/release/Oaklight/out-of-band?color=green" alt="Release"></a>
+  <a href="https://github.com/Oaklight/out-of-band/actions/workflows/ci.yml"><img src="https://github.com/Oaklight/out-of-band/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="Apache-2.0"></a>
 </p>
 
@@ -15,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://oaklight.github.io/outboard/"><strong>Take the guided tour →</strong></a>
+  <a href="https://oaklight.github.io/out-of-band/"><strong>Take the guided tour →</strong></a>
 </p>
 
 ## Why this exists
@@ -34,12 +33,17 @@ Putting a runner on that machine is usually worse than the problem:
   reading files in a browser tab.
 - **Skipping the check** turns the gate into a suggestion.
 
-outboard takes a fourth route. The check runs where it already runs and produces
+Out-of-band takes a fourth route. The check runs where it already runs and produces
 a small signed statement: this repository, this commit, this job, this result,
 this evidence digest. That statement is the only thing that travels. A hosted
 workflow verifies the signature over the exact bytes, checks the bindings, and
 publishes the verdict as a check run. The operator machine needs no inbound
 path and holds no GitHub credential.
+
+The same mechanism covers a case with nothing exotic in it: you already ran the
+test locally. Re-running it on a runner can take longer than the change took to
+write, can fail for reasons the local run did not, or can return a slightly
+different number. A signed receipt lets the gate accept the run you have.
 
 If no valid statement arrives, the result is `unverified` and the merge stays
 blocked. "Did not run" and "ran and failed" remain different states.
@@ -75,7 +79,7 @@ required check stays pending and the merge stays blocked.
 ## Install
 
 ```bash
-pip install outboard
+pip install out-of-band
 ```
 
 Python 3.11+ and OpenSSH with `ssh-keygen -Y sign` (OpenSSH 8.0+). No runtime
@@ -86,7 +90,7 @@ dependencies.
 Generate a key on the operator machine. It never leaves the machine.
 
 ```bash
-ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/outboard
+ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/out-of-band
 ```
 
 Commit the public key in the consumer repository as `.github/allowed_signers`:
@@ -99,12 +103,12 @@ Sign a result for one commit. `--commit` must be a full SHA that exists in the
 local clone; the tree is read from the commit, not the worktree.
 
 ```bash
-outboard sign \
+oob sign \
   --job smoke \
   --commit "$(git rev-parse HEAD)" \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --output-file ./check-output.txt
 ```
 
@@ -118,7 +122,7 @@ folded under the summary. Without it the receipt stays `receipt/v1`.
 Verify locally before posting:
 
 ```bash
-outboard verify --block block.md \
+oob verify --block block.md \
   --allowed-signers .github/allowed_signers \
   --repo owner/name --commit "$SHA" --expect-job smoke
 ```
@@ -182,7 +186,7 @@ jobs:
 
   verified:
     needs: policy
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha> # v0.3.0
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.0
     with:
       pr: ${{ needs.policy.outputs.pr }}
       commit: ${{ needs.policy.outputs.commit }}
@@ -206,19 +210,19 @@ Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
 `allowed-signers`, `trusted-authors`, `evidence-url`. Output: `verdict`.
 
 Pin `uses:` by full commit SHA and keep the version in a comment
-(`# v0.3.0`); Dependabot can open the bump PR. A tag can be moved.
+(`# v0.4.0`); Dependabot can open the bump PR. A tag can be moved.
 
 ### Uploading evidence
 
 Empty `evidence-url` keeps the current behaviour: the receipt commits to a
 digest and nothing is uploaded.
 
-Set it to an HTTPS URL of a bundle made with `outboard pack`, and the workflow
+Set it to an HTTPS URL of a bundle made with `oob pack`, and the workflow
 downloads it, extracts it safely, recomputes the digest, and uploads it as the
-`outboard-evidence` artifact. A mismatch makes the check unverified.
+`oob-evidence` artifact. A mismatch makes the check unverified.
 
 ```bash
-outboard pack --evidence-dir ./evidence --out evidence.tgz
+oob pack --evidence-dir ./evidence --out evidence.tgz
 ```
 
 ### Receipt collection
@@ -251,7 +255,7 @@ there is no CLI publish command.
 ### Air-gapped operator hosts
 
 The signing host can have no outbound network at all. Run the single-file
-`outboard.pyz` (or install the wheel) from the release, carry the repository as a `git bundle`, and carry the
+`oob.pyz` (or install the wheel) from the release, carry the repository as a `git bundle`, and carry the
 receipt and evidence out by hand. See [docs/offline.md](docs/en/offline.md).
 
 ### Retention
@@ -269,6 +273,15 @@ repository, commit, tree, job, and evidence digest.
 It does not prove that the job ran correctly, that the evidence matches the
 digest, or that the host was uncompromised. It is an attestation, not a proof
 of correctness. See [SPEC.md](SPEC.md) §8.
+
+## The name
+
+Out-of-band means the check runs outside the normal CI path. GitHub still
+receives the result, but the job and the signature happen somewhere else: a lab
+machine, an HPC login node, a rented GPU. What crosses back is a signed receipt.
+
+The command is `oob`, the short form. The package and the repository use the
+full name, `out-of-band`.
 
 ## Development
 

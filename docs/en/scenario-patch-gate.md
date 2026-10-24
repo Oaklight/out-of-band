@@ -64,7 +64,7 @@ jobs:
 
   verified:
     needs: policy
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
     with:
       pr: ${{ needs.policy.outputs.pr }}
       commit: ${{ needs.policy.outputs.commit }}
@@ -100,12 +100,12 @@ mkdir -p /tmp/evidence
 ./run-smoke.sh 2>&1 | tee /tmp/evidence/smoke.log
 
 # 3. Sign. Runs offline; the key never leaves this machine.
-outboard sign \
+oob sign \
   --job patch-smoke \
   --commit "$(git rev-parse HEAD)" \
   --result pass \
   --evidence-dir /tmp/evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --repo owner/repo \
   --output-file /tmp/evidence/last-lines.txt \
   --out receipt.md
@@ -138,7 +138,7 @@ the same line they conflict like any other change, so land them one at a time.
 
 Options for the ref:
 
-- **Full commit SHA** (recommended): immutable. Add a `# v0.3.0` comment so a
+- **Full commit SHA** (recommended): immutable. Add a `# v0.4.0` comment so a
   tool knows the version, and let Dependabot open the bump PR.
 - **Release tag**: shorter, but a tag can be moved to another commit.
 - **Default branch**: always current, never reviewed. Do not use it for a gate.
@@ -162,7 +162,7 @@ inside `${{ }}` is evaluated by GitHub at run time; you do not fill it in.
 
 | Placeholder | What it is |
 | --- | --- |
-| `<full-sha>` in `uses:` | the outboard commit you pin; copy it from the release page |
+| `<full-sha>` in `uses:` | the out-of-band commit you pin; copy it from the release page |
 | `job:` | must equal the operator's `--job` |
 | `check-name:` | the string branch protection matches, so keep it unique per job |
 | `trusted-authors:` | optional; your GitHub login, or a comma-separated list |

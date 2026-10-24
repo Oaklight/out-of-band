@@ -1,4 +1,4 @@
-name: outboard verify
+name: oob verify
 
 on:
   workflow_call:
@@ -22,7 +22,7 @@ on:
       check-name:
         description: Check run name; this is what branch protection matches
         type: string
-        default: outboard
+        default: oob
       receipt:
         description: Receipt text passed directly; takes precedence over comments
         type: string
@@ -50,7 +50,7 @@ permissions:
   pull-requests: write
 
 env:
-  OUTBOARD_VERSION: "0.3.0"
+  OOB_VERSION: "0.4.0"
   GH_TOKEN: ${{ github.token }}
 
 jobs:
@@ -60,7 +60,7 @@ jobs:
     outputs:
       verdict: ${{ steps.publish.outputs.verdict }}
     concurrency:
-      group: outboard-${{ inputs.check-name }}-${{ inputs.commit }}
+      group: oob-${{ inputs.check-name }}-${{ inputs.commit }}
       cancel-in-progress: false
     steps:
       - name: Check out the caller's default branch
@@ -73,12 +73,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install outboard
+      - name: Install out-of-band
         run: |
-          if [ "$GITHUB_REPOSITORY" = "Oaklight/outboard" ]; then
+          if [ "$GITHUB_REPOSITORY" = "Oaklight/out-of-band" ]; then
             pip install .
           else
-            pip install "outboard==${OUTBOARD_VERSION}"
+            pip install "out-of-band==${OOB_VERSION}"
           fi
 
       - name: Resolve receipt
@@ -89,7 +89,7 @@ jobs:
           TRUSTED: ${{ inputs.trusted-authors }}
           COMMIT: ${{ inputs.commit }}
           JOB: ${{ inputs.job }}
-        run: python -m outboard.workflow collect
+        run: python -m oob.workflow collect
 
       - name: Verify receipt
         id: verify
@@ -100,7 +100,7 @@ jobs:
           JOB: ${{ inputs.job }}
         run: |
           set +e
-          outboard verify \
+          oob verify \
             --block "$RUNNER_TEMP/receipt.md" \
             --allowed-signers "$ALLOWED" \
             --repo "$GITHUB_REPOSITORY" \
@@ -124,7 +124,7 @@ jobs:
             echo "status=invalid" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          python -m outboard.workflow evidence \
+          python -m oob.workflow evidence \
             --receipt "$RUNNER_TEMP/receipt.md" \
             --archive "$RUNNER_TEMP/evidence.tgz" \
             --out "$RUNNER_TEMP/evidence"
@@ -139,7 +139,7 @@ jobs:
         if: ${{ steps.evidence.outputs.status == 'ok' }}
         uses: actions/upload-artifact@v4
         with:
-          name: outboard-evidence
+          name: oob-evidence
           path: ${{ runner.temp }}/evidence
 
       - name: Publish result
@@ -155,4 +155,4 @@ jobs:
           JOB: ${{ inputs.job }}
           PR: ${{ inputs.pr }}
           CHECK_NAME: ${{ inputs.check-name }}
-        run: python -m outboard.workflow publish
+        run: python -m oob.workflow publish

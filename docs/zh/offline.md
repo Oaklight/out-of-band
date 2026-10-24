@@ -8,7 +8,7 @@ HPC 的登录节点常常没有外网、连不上 PyPI，也没有 GitHub 凭据
 
 ## 谁来搬什么
 
-outboard 不做传输，也不开 socket。回执是对字节的签名，只要能把字节搬过去，什么通道都行；通道本身不需要可信，改了字节就验不过。把 SSH 做进工具里，意味着要在工具内部管凭据、host key 和跳板机规则，而且仍然覆盖不了所有站点。
+out-of-band 不做传输，也不开 socket。回执是对字节的签名，只要能把字节搬过去，什么通道都行；通道本身不需要可信，改了字节就验不过。把 SSH 做进工具里，意味着要在工具内部管凭据、host key 和跳板机规则，而且仍然覆盖不了所有站点。
 
 跑任务的机器和签名的机器可以不是同一台。回执是操作员的声明，绑定一份证据的 digest，不是机器自己吐出来的凭据。常见做法：
 
@@ -22,8 +22,8 @@ outboard 不做传输，也不开 socket。回执是对字节的签名，只要�
 
 ```bash
 ssh hpc 'tar -C ~/runs/1234 -cf - .' | tar -C ./evidence -xf -
-outboard sign --job bench-smoke --commit <sha> --result pass \
-  --evidence-dir ./evidence --key ~/.ssh/outboard --repo owner/name \
+oob sign --job bench-smoke --commit <sha> --result pass \
+  --evidence-dir ./evidence --key ~/.ssh/out-of-band --repo owner/name \
   --output-file ./check-output.txt > receipt.md
 ```
 
@@ -45,8 +45,8 @@ ssh hpc 'cat ~/runs/1234/evidence.tgz' > evidence.tgz
 `sign` 默认把整块写到 stdout，所以私钥在机器上时也可以远程签：
 
 ```bash
-ssh hpc 'outboard sign --job bench-smoke --commit <sha> --result pass \
-  --evidence-dir runs/1234 --key .ssh/outboard --repo owner/name' > receipt.md
+ssh hpc 'oob sign --job bench-smoke --commit <sha> --result pass \
+  --evidence-dir runs/1234 --key .ssh/out-of-band --repo owner/name' > receipt.md
 ```
 
 **单向物理搬运。** U 盘、数据二极管、跳板机上的共享目录。步骤不变，只是 `scp` 换成拷贝。
@@ -57,27 +57,27 @@ workflow 是从 GitHub 的 runner 去取 `evidence-url` 的，不是从你的机
 
 ## 把工具带进去
 
-通常一个文件就够了。每个 release 都带 `outboard-<version>.pyz`：一个 zipapp，内含包和入口，只需要 Python 3.11+。
+通常一个文件就够了。每个 release 都带 `oob-<version>.pyz`：一个 zipapp，内含包和入口，只需要 Python 3.11+。
 
 ```bash
-scp outboard-0.3.0.pyz host:
-ssh host python3 outboard-0.3.0.pyz --version
+scp oob-0.4.0.pyz host:
+ssh host python3 oob-0.4.0.pyz --version
 ```
 
-它的用法和装好的命令一样，下面所有例子都能把 `outboard` 换成 `python3 outboard-0.3.0.pyz`。
+它的用法和装好的命令一样，下面所有例子都能把 `oob` 换成 `python3 oob-0.4.0.pyz`。
 
 如果站点更习惯正常安装，wheel 是纯 Python（`py3-none-any`），任何 3.11+ 解释器都能用。在能上网的机器上：
 
 ```bash
-pip download outboard==0.3.0 -d wheelhouse
+pip download out-of-band==0.4.0 -d wheelhouse
 ```
 
 把 `wheelhouse/` 拷过去，然后：
 
 ```bash
-python3 -m venv ~/outboard
-~/outboard/bin/pip install --no-index --find-links wheelhouse outboard==0.3.0
-~/outboard/bin/outboard --version
+python3 -m venv ~/out-of-band
+~/out-of-band/bin/pip install --no-index --find-links wheelhouse out-of-band==0.4.0
+~/out-of-band/bin/oob --version
 ```
 
 wheel、sdist 和 zipapp 都在 release 页面上，也可以直接用浏览器下载。
@@ -111,16 +111,16 @@ git fetch /path/to/lab.bundle <head-sha>
 ## 签名和打包
 
 ```bash
-outboard sign \
+oob sign \
   --job bench-smoke \
   --commit <head-sha> \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --repo owner/name \
   --output-file ./check-output.txt
 
-outboard pack --evidence-dir ./evidence --out evidence.tgz
+oob pack --evidence-dir ./evidence --out evidence.tgz
 ```
 
 不需要网络、不需要凭据、不需要常驻进程。

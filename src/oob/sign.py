@@ -21,7 +21,7 @@ def _now() -> str:
 def _ssh_sign(payload: bytes, key: Path) -> str:
     if not key.is_file():
         raise OutboardError("E_USAGE", f"signing key not found: {key}")
-    with tempfile.TemporaryDirectory(prefix="outboard-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="oob-") as tmp:
         data = Path(tmp) / "receipt.json"
         data.write_bytes(payload)
         proc = subprocess.run(
@@ -81,7 +81,7 @@ def sign(
         job=job,
         result=result,
         issued_at=_now(),
-        tool=f"outboard/{__version__}",
+        tool=f"oob/{__version__}",
         count=count,
         digest=digest,
         claims=parse_pairs(claims or []),

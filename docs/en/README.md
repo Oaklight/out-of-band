@@ -3,13 +3,13 @@
 [English](README.md) | [中文](../zh/README.md)
 
 Some jobs cannot run on GitHub: a benchmark on a rented GPU box, a patch smoke
-test on a workstation, a training run inside a lab network. Outboard lets the
+test on a workstation, a training run inside a lab network. Out-of-band lets the
 machine that ran the job sign a short claim, and lets GitHub verify it and
-publish a check run.
+publish a check run. It also covers jobs that could run on CI but already ran somewhere else, where re-running is slow, flaky, or expensive.
 
 Pick the page that matches what you are doing.
 
-Prefer a visual walkthrough? [Take the guided tour](https://oaklight.github.io/outboard/).
+Prefer a visual walkthrough? [Take the guided tour](https://oaklight.github.io/out-of-band/).
 
 | If you want to | Read |
 | --- | --- |
@@ -27,7 +27,7 @@ Prefer a visual walkthrough? [Take the guided tour](https://oaklight.github.io/o
 Every setup has the same three parts.
 
 1. **A receipt.** One line of JSON and an SSH signature, produced by the
-   operator on the machine that ran the job with `outboard sign`. No network,
+   operator on the machine that ran the job with `oob sign`. No network,
    no GitHub credential.
 2. **A verifier.** The reusable workflow checks the signature against
    `allowed_signers` read from the default branch, then binds the repository,

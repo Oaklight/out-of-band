@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from outboard import workflow
-from outboard.errors import OutboardError
+from oob import workflow
+from oob.errors import OutboardError
 
 
 def test_collect_uses_the_input_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -319,7 +319,7 @@ def test_evidence_round_trip(tmp_path: Path, keypair: Path) -> None:
     (source / "run.log").write_text("ok\n", encoding="utf-8")
     (source / "nested" / "result.json").write_text("{}", encoding="utf-8")
 
-    from outboard.evidence import digest_directory, pack_directory
+    from oob.evidence import digest_directory, pack_directory
 
     count, digest = digest_directory(source)
     assert count == 2
@@ -341,7 +341,7 @@ def test_evidence_round_trip(tmp_path: Path, keypair: Path) -> None:
 
 
 def test_evidence_mismatch_is_rejected(tmp_path: Path, keypair: Path) -> None:
-    from outboard.evidence import pack_directory
+    from oob.evidence import pack_directory
 
     source = tmp_path / "evidence"
     source.mkdir()

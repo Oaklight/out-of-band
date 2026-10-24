@@ -61,7 +61,7 @@ jobs:
 
   verified:
     needs: policy
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
     with:
       pr: ${{ needs.policy.outputs.pr }}
       commit: ${{ needs.policy.outputs.commit }}
@@ -92,12 +92,12 @@ mkdir -p /tmp/evidence
 ./run-smoke.sh 2>&1 | tee /tmp/evidence/smoke.log
 
 # 3. 签名。离线完成，私钥不离开这台机器。
-outboard sign \
+oob sign \
   --job patch-smoke \
   --commit "$(git rev-parse HEAD)" \
   --result pass \
   --evidence-dir /tmp/evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --repo owner/repo \
   --output-file /tmp/evidence/last-lines.txt \
   --out receipt.md
@@ -120,7 +120,7 @@ gh pr comment 5 --body-file receipt.md
 
 ref 有几种选法：
 
-- **完整 commit SHA**（推荐）：不可变。后面加一句 `# v0.3.0` 注释，让工具知道版本，并用 Dependabot 开升级 PR。
+- **完整 commit SHA**（推荐）：不可变。后面加一句 `# v0.4.0` 注释，让工具知道版本，并用 Dependabot 开升级 PR。
 - **release tag**：短一些，但 tag 可以被挪到别的 commit。
 - **默认分支**：永远最新，也永远没人审。门禁不要这么用。
 - **本地拷贝**（`uses: ./.github/workflows/verify.yml`）：没有外部 pin，但验证器和它的升级从此归你维护。
@@ -141,7 +141,7 @@ workflow 是模板，但真正要你定的只有三处，另有一处可选。`$
 
 | 占位符 | 是什么 |
 | --- | --- |
-| `uses:` 里的 `<full-sha>` | 你要固定的 outboard commit，从 release 页面复制 |
+| `uses:` 里的 `<full-sha>` | 你要固定的 out-of-band commit，从 release 页面复制 |
 | `job:` | 必须和操作员的 `--job` 一致 |
 | `check-name:` | 分支保护匹配的字符串，所以每个 job 要唯一 |
 | `trusted-authors:` | 可选；你的 GitHub 登录名，或逗号分隔的列表 |

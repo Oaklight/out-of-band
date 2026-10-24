@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from outboard.block import extract
-from outboard.cli import main
-from outboard.errors import OutboardError
-from outboard.sign import sign
-from outboard.verify import verify
+from oob.block import extract
+from oob.cli import main
+from oob.errors import OutboardError
+from oob.sign import sign
+from oob.verify import verify
 
 
 def make_block(

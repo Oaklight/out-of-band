@@ -1,4 +1,4 @@
-"""Build `dist/outboard.pyz`, a single file that runs on a bare python3.
+"""Build `dist/oob.pyz`, a single file that runs on a bare python3.
 
 For hosts where installing a wheel is awkward or disallowed: no pip, no venv,
 no package directory. The archive holds the package plus a root `__main__.py`.
@@ -13,7 +13,7 @@ import zipapp
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = ROOT / "dist" / "outboard.pyz"
+TARGET = ROOT / "dist" / "oob.pyz"
 IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo")
 
 
@@ -21,9 +21,9 @@ def build(target: Path = TARGET) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         stage = Path(tmp) / "app"
-        shutil.copytree(ROOT / "src" / "outboard", stage / "outboard", ignore=IGNORE)
+        shutil.copytree(ROOT / "src" / "oob", stage / "oob", ignore=IGNORE)
         (stage / "__main__.py").write_text(
-            "import sys\nfrom outboard.cli import main\n\nsys.exit(main())\n",
+            "import sys\nfrom oob.cli import main\n\nsys.exit(main())\n",
             encoding="utf-8",
         )
         zipapp.create_archive(

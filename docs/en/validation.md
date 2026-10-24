@@ -13,7 +13,7 @@ hostname, address, username, or device identifier appears in this document.
 
 | Check | Result |
 |---|---|
-| `outboard sign` inside an empty network namespace (`unshare -n`) | exit 0, valid block |
+| `oob sign` inside an empty network namespace (`unshare -n`) | exit 0, valid block |
 | `ssh-keygen -Y verify` of the literal payload, offline | exit 0 |
 | GitHub credential on the host | none: no `gh` config, no `GH_TOKEN`/`GITHUB_TOKEN` in the environment |
 | Inbound listener required by the flow | none; every step is a local read or an outbound HTTPS request |
@@ -40,7 +40,7 @@ printf '{"passed":true}\n' > "$WORK/evidence/nested/result.json"
 ssh-keygen -q -t ed25519 -N "" -f "$WORK/keys/op_key"
 
 # No network namespace at all.
-unshare -n env PYTHONPATH=/path/to/outboard/src python3 -m outboard.cli sign \
+unshare -n env PYTHONPATH=/path/to/out-of-band/src python3 -m oob.cli sign \
   --job smoke --commit "$COMMIT" --result pass \
   --evidence-dir "$WORK/evidence" --key "$WORK/keys/op_key" > "$WORK/block.md"
 

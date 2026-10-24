@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "outboard"
-version = "0.3.0"
+name = "out-of-band"
+version = "0.4.0"
 description = "Out-of-band CI receipts: sign where GitHub cannot reach, verify in Actions, publish a check."
 readme = "README_en.md"
 requires-python = ">=3.11"
@@ -17,12 +17,28 @@ classifiers = [
   "Environment :: Console",
   "Topic :: Software Development :: Quality Assurance",
 ]
+keywords = [
+  "ci",
+  "github-actions",
+  "receipts",
+  "attestation",
+  "code-signing",
+  "ssh-signature",
+  "branch-protection",
+  "out-of-band",
+]
+
+[project.urls]
+Homepage = "https://oaklight.github.io/out-of-band/"
+Repository = "https://github.com/Oaklight/out-of-band"
+Documentation = "https://github.com/Oaklight/out-of-band/tree/main/docs"
+Changelog = "https://github.com/Oaklight/out-of-band/releases"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.17,<0.18"]
 
 [project.scripts]
-outboard = "outboard.cli:main"
+oob = "oob.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

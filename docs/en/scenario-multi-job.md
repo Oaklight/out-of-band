@@ -14,7 +14,7 @@ per name:
 ```yaml
 jobs:
   v100:
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
     with:
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ github.event.pull_request.head.sha }}
@@ -23,7 +23,7 @@ jobs:
       trusted-authors: your-login
 
   a100:
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
     with:
       pr: ${{ github.event.pull_request.number }}
       commit: ${{ github.event.pull_request.head.sha }}

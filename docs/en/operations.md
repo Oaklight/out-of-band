@@ -7,8 +7,8 @@ Keys, trust, and what to do when a verdict is not what you expected.
 ## Generating a key
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/outboard -C "outboard operator"
-chmod 600 ~/.ssh/outboard
+ssh-keygen -t ed25519 -f ~/.ssh/out-of-band -C "out-of-band operator"
+chmod 600 ~/.ssh/out-of-band
 ```
 
 `ssh-keygen -Y sign` reads the key file directly; it does not consult
@@ -19,7 +19,7 @@ person signs and impossible in an unattended job. Use an unencrypted key with
 The public key goes into `.github/allowed_signers` on the default branch:
 
 ```
-operator ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... outboard operator
+operator ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... out-of-band operator
 ```
 
 The principal before the key is a label of your choosing. It is not tied to a
@@ -53,7 +53,7 @@ who may post the comment, and whose signature counts.
 
 ## Releases and pinning
 
-Consumers pin `uses: Oaklight/outboard/.github/workflows/verify.yml@<sha>`. The
+Consumers pin `uses: Oaklight/out-of-band/.github/workflows/verify.yml@<sha>`. The
 workflow reads `allowed_signers` from the caller repository, so the pin decides
 which verifier code runs, not which keys are trusted.
 
@@ -85,7 +85,7 @@ check is red because the claim itself is negative.
 To reproduce a verdict locally:
 
 ```bash
-outboard verify \
+oob verify \
   --block receipt.md \
   --allowed-signers .github/allowed_signers \
   --repo owner/repo \
@@ -110,7 +110,7 @@ evidence download.
 
 - The URL must be reachable from the runner and must not need a browser
   session. A private object store needs a signed URL.
-- The bundle must be a `.tar.gz` from `outboard pack`, or have the same shape:
+- The bundle must be a `.tar.gz` from `oob pack`, or have the same shape:
   no absolute paths, no `..`, no links, no special files.
 - The digest covers paths and file contents, not archive bytes, so repacking is
   safe; changing a file is not.

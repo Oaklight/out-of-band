@@ -43,7 +43,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/build_zipapp.py
-      - run: python dist/outboard.pyz --version
+      - run: python dist/oob.pyz --version
       - name: sign and verify with the archive alone
         run: |
           git config --global user.email ci@example.com
@@ -59,11 +59,11 @@ jobs:
           ssh-keygen -q -t ed25519 -N "" -f "$work/key"
           echo "operator $(cat "$work/key.pub")" > "$work/allowed_signers"
           cd "$work/repo"
-          python "$GITHUB_WORKSPACE/dist/outboard.pyz" sign \
+          python "$GITHUB_WORKSPACE/dist/oob.pyz" sign \
             --job smoke --commit "$sha" --result pass \
             --evidence-dir "$work/ev" --key "$work/key" \
-            --repo Oaklight/outboard --out "$work/receipt.md"
+            --repo Oaklight/out-of-band --out "$work/receipt.md"
           cd "$work"
-          python "$GITHUB_WORKSPACE/dist/outboard.pyz" verify \
+          python "$GITHUB_WORKSPACE/dist/oob.pyz" verify \
             --block receipt.md --allowed-signers allowed_signers \
-            --repo Oaklight/outboard --commit "$sha" --expect-job smoke
+            --repo Oaklight/out-of-band --commit "$sha" --expect-job smoke

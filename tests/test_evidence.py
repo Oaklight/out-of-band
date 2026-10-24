@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from outboard.errors import OutboardError
-from outboard.evidence import digest_directory
+from oob.errors import OutboardError
+from oob.evidence import digest_directory
 
 
 def test_manifest_is_sorted_and_stable(tmp_path: Path, keypair: Path) -> None:

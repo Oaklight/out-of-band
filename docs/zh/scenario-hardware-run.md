@@ -16,21 +16,21 @@ check run 属于 commit，不属于分支、release 或某个人。所以第一�
 
 ```bash
 # 在跑任务的那台机器上，不需要网络。
-outboard sign \
+oob sign \
   --job v100-bench \
   --commit 6e5b8a482f1baf41c8080b79501294cbf4057987 \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --repo owner/repo \
   --output-file ./summary.txt \
   --out receipt.md
 ```
 
-证据目录要小而有信息量：命令行、日志、以后还想看的数字。`outboard pack` 把它们打成确定性的压缩包：
+证据目录要小而有信息量：命令行、日志、以后还想看的数字。`oob pack` 把它们打成确定性的压缩包：
 
 ```bash
-outboard pack --evidence-dir ./evidence --out evidence.tgz
+oob pack --evidence-dir ./evidence --out evidence.tgz
 ```
 
 回执里的 digest 覆盖目录内容，签了什么就绑定了什么。签完再打包也可以；包里的文件必须和签名时一致。
@@ -76,7 +76,7 @@ permissions:
 
 jobs:
   verified:
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
     with:
       pr: "0"
       commit: ${{ inputs.commit }}
@@ -92,7 +92,7 @@ jobs:
 
 ## 长任务
 
-门禁不会等。它由事件触发——PR 更新、评论、手动 dispatch——只看触发那一刻已经存在的回执，几秒内结束。任务跑三小时还是三天都无所谓：跑完再签、再发评论。
+门禁不会等。它由事件触发（PR 更新、评论、手动 dispatch），只看触发那一刻已经存在的回执，几秒内结束。任务跑三小时还是三天都无所谓：跑完再签、再发评论。
 
 真实的限制只有这些：
 
@@ -105,7 +105,7 @@ jobs:
 
 - check run 里是结论，output 里是声明和折叠的 `output` 文本。
 - run 的 step summary 再写一遍结论、来源和证据状态。
-- 上传了包的话，run 里会有 `outboard-evidence`，受 Actions 保留期限制（默认 90 天）。
+- 上传了包的话，run 里会有 `oob-evidence`，受 Actions 保留期限制（默认 90 天）。
 - 有 PR 评论的话，那条评论才是长期记录，check 不是。
 
 ## 强制推送之后

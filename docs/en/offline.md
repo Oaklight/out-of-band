@@ -11,7 +11,7 @@ clock changes a timestamp, not validity.
 
 ## Who carries what
 
-`outboard` implements no transport and opens no socket. A receipt is a signature
+`out-of-band` implements no transport and opens no socket. A receipt is a signature
 over bytes, so any channel that moves bytes works, and the channel does not have
 to be trusted: alter the bytes and verification fails. Adding SSH to the tool
 would mean owning credentials, host keys and bastion rules inside it, and would
@@ -33,8 +33,8 @@ a directory. Pull it to your workstation and sign there:
 
 ```bash
 ssh hpc 'tar -C ~/runs/1234 -cf - .' | tar -C ./evidence -xf -
-outboard sign --job bench-smoke --commit <sha> --result pass \
-  --evidence-dir ./evidence --key ~/.ssh/outboard --repo owner/name \
+oob sign --job bench-smoke --commit <sha> --result pass \
+  --evidence-dir ./evidence --key ~/.ssh/out-of-band --repo owner/name \
   --output-file ./check-output.txt > receipt.md
 ```
 
@@ -62,8 +62,8 @@ ssh hpc 'cat ~/runs/1234/evidence.tgz' > evidence.tgz
 the host:
 
 ```bash
-ssh hpc 'outboard sign --job bench-smoke --commit <sha> --result pass \
-  --evidence-dir runs/1234 --key .ssh/outboard --repo owner/name' > receipt.md
+ssh hpc 'oob sign --job bench-smoke --commit <sha> --result pass \
+  --evidence-dir runs/1234 --key .ssh/out-of-band --repo owner/name' > receipt.md
 ```
 
 **One-way physical transfer.** USB, a data diode, or an internal share from a
@@ -78,30 +78,30 @@ dispatch or comment.
 
 ## Carry the tool in
 
-One file is usually enough. Each release carries `outboard-<version>.pyz`: a
+One file is usually enough. Each release carries `oob-<version>.pyz`: a
 zipapp holding the package and an entry point, needing only Python 3.11+.
 
 ```bash
-scp outboard-0.3.0.pyz host:
-ssh host python3 outboard-0.3.0.pyz --version
+scp oob-0.4.0.pyz host:
+ssh host python3 oob-0.4.0.pyz --version
 ```
 
 It behaves like the installed command, so every example below works with
-`python3 outboard.pyz` in place of `outboard`.
+`python3 oob-0.4.0.pyz` in place of `oob`.
 
 If the site prefers a normal install, the wheel is pure Python
 (`py3-none-any`), so any 3.11+ interpreter can use it. On a connected machine:
 
 ```bash
-pip download outboard==0.3.0 -d wheelhouse
+pip download out-of-band==0.4.0 -d wheelhouse
 ```
 
 Copy `wheelhouse/` over, then:
 
 ```bash
-python3 -m venv ~/outboard
-~/outboard/bin/pip install --no-index --find-links wheelhouse outboard==0.3.0
-~/outboard/bin/outboard --version
+python3 -m venv ~/out-of-band
+~/out-of-band/bin/pip install --no-index --find-links wheelhouse out-of-band==0.4.0
+~/out-of-band/bin/oob --version
 ```
 
 The wheel, sdist and zipapp are all on the release page, so they can be fetched
@@ -138,16 +138,16 @@ local path as `origin`, which cannot be turned into a repository name.
 ## Sign and pack
 
 ```bash
-outboard sign \
+oob sign \
   --job bench-smoke \
   --commit <head-sha> \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard \
+  --key ~/.ssh/out-of-band \
   --repo owner/name \
   --output-file ./check-output.txt
 
-outboard pack --evidence-dir ./evidence --out evidence.tgz
+oob pack --evidence-dir ./evidence --out evidence.tgz
 ```
 
 No network, no credential, no daemon.
