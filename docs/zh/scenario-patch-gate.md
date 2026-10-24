@@ -1,6 +1,6 @@
 # 场景：补丁合并前先测
 
-[English](scenario-patch-gate.md) | [中文](scenario-patch-gate.zh.md)
+[English](../en/scenario-patch-gate.md) | [中文](scenario-patch-gate.md)
 
 仓库里有一个 `patches/` 目录（也可能是 `src/`、固件目录），改动必须在真机上跑过冒烟测试。CI 做不了这件事，就由人来跑，然后签个名。
 
@@ -172,4 +172,4 @@ workflow 是模板，但真正要你定的只有三处，另有一处可选。`$
 
 - 这个 workflow 里不要 checkout、也不要执行 PR 的代码。它拿着写权限，fork PR 也一样。
 - fork 来的 PR 在 `pull_request` 下只有只读 token。`pull_request_target` 和 `issue_comment` 都能绕开；例子用前者，这样每次推送都能触发，不必等评论。
-- 证据上传是可选的。需要日志时加 `evidence-url`，见[硬件运行](scenario-hardware-run.zh.md)。
+- 证据上传是可选的。需要日志时加 `evidence-url`，见[硬件运行](scenario-hardware-run.md)。

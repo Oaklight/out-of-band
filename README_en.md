@@ -1,6 +1,6 @@
-# outboard
+<h1 align="center">outboard</h1>
 
-Out-of-band receipts for CI gates.
+<p align="center">Out-of-band receipts for CI gates.</p>
 
 <p align="center">
   <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/v/outboard?color=green" alt="PyPI"></a>
@@ -125,7 +125,7 @@ outboard verify --block block.md \
 
 ## Documentation
 
-Scenario guides live in [docs/](docs/README.md): a patch gate, a benchmark run,
+Scenario guides live in [docs/](docs/en/README.md): a patch gate, a benchmark run,
 branch attestation without a PR, several jobs on one commit, air-gapped hosts,
 and operations. Start there rather than from the input list below.
 
@@ -252,7 +252,7 @@ there is no CLI publish command.
 
 The signing host can have no outbound network at all. Run the single-file
 `outboard.pyz` (or install the wheel) from the release, carry the repository as a `git bundle`, and carry the
-receipt and evidence out by hand. See [docs/offline.md](docs/offline.md).
+receipt and evidence out by hand. See [docs/offline.md](docs/en/offline.md).
 
 ### Retention
 
@@ -278,7 +278,7 @@ pytest -q
 ruff check src tests
 ```
 
-`SPEC.md` is normative. `docs/validation.md` records the operator-host test.
+`SPEC.md` is normative. `docs/en/validation.md` records the operator-host test.
 The self-test workflow signs four receipts and asserts that valid ones pass and
 forged ones do not.
 

@@ -1164,8 +1164,8 @@ const VARIANTS = [
       en: "Attest a push when no pull request exists — and see honestly what can and cannot be enforced.",
       zh: "没有 PR 时给推送做背书——也如实说明什么拦得住、什么拦不住。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-branch-gate.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-branch-gate.zh.md",
+    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-branch-gate.md",
+    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-branch-gate.md",
   },
   {
     title: { en: "Air-gapped hosts", zh: "离线机器" },
@@ -1173,8 +1173,8 @@ const VARIANTS = [
       en: "Signing on an HPC login node with no outbound network. What to carry, and who carries it.",
       zh: "在没有外网的 HPC 登录节点上签名。带什么进去，谁把结果带出来。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/offline.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/offline.zh.md",
+    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/offline.md",
+    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/offline.md",
   },
   {
     title: { en: "Operations", zh: "运维" },
@@ -1182,8 +1182,8 @@ const VARIANTS = [
       en: "Key generation, the trust root, rotation, the error-code table, and what the timeouts actually are.",
       zh: "生成密钥、信任根、轮换、错误码表，以及超时到底是什么。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/operations.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/operations.zh.md",
+    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/operations.md",
+    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/operations.md",
   },
   {
     title: { en: "Patch gate guide", zh: "补丁门禁指南" },
@@ -1191,8 +1191,8 @@ const VARIANTS = [
       en: "The full caller workflow from the tour, including the API-based head resolution.",
       zh: "导览里那个调用方 workflow 的完整版本，包括通过 API 解析 head。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-patch-gate.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-patch-gate.zh.md",
+    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-patch-gate.md",
+    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-patch-gate.md",
   },
   {
     title: { en: "Benchmark run guide", zh: "Benchmark 记录指南" },
@@ -1200,8 +1200,8 @@ const VARIANTS = [
       en: "Evidence upload, dispatch-only gates, and a section on jobs that run for days.",
       zh: "证据上传、只用 dispatch 的门禁，以及任务跑好几天时怎么办。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-hardware-run.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-hardware-run.zh.md",
+    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-hardware-run.md",
+    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-hardware-run.md",
   },
   {
     title: { en: "Multiple jobs guide", zh: "多 job 指南" },
@@ -1209,8 +1209,8 @@ const VARIANTS = [
       en: "Naming, required versus optional, and the aggregator pattern in full.",
       zh: "命名、必需与可选，以及完整的汇总 job 写法。",
     },
-    href: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-multi-job.md",
-    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/scenario-multi-job.zh.md",
+    href: "https://github.com/Oaklight/outboard/blob/main/docs/en/scenario-multi-job.md",
+    hrefZh: "https://github.com/Oaklight/outboard/blob/main/docs/zh/scenario-multi-job.md",
   },
 ];
 

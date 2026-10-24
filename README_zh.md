@@ -1,6 +1,6 @@
-# outboard
+<h1 align="center">outboard</h1>
 
-在 GitHub 够不到的地方跑检查，用签名回执卡住合并。
+<p align="center">在 GitHub 够不到的地方跑检查，用签名回执卡住合并。</p>
 
 <p align="center">
   <a href="https://pypi.org/project/outboard/"><img src="https://img.shields.io/pypi/v/outboard?color=green" alt="PyPI"></a>
@@ -106,7 +106,7 @@ outboard verify --block block.md \
 
 ## 文档
 
-按场景写的指南在 [docs/](docs/README.zh.md)：补丁门禁、benchmark 记录、不经过 PR 的分支背书、同一个 commit 上的多个 job、离线机器，以及运维。建议先从那里看，再回来看下面这串输入参数。
+按场景写的指南在 [docs/](docs/zh/README.md)：补丁门禁、benchmark 记录、不经过 PR 的分支背书、同一个 commit 上的多个 job、离线机器，以及运维。建议先从那里看，再回来看下面这串输入参数。
 
 ## 接到自己的仓库
 
@@ -208,7 +208,7 @@ outboard pack --evidence-dir ./evidence --out evidence.tgz
 
 ### 离线操作员机器
 
-签名机可以完全没有外网。用 Release 附带的单文件 `outboard.pyz`（或 wheel）运行，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/offline.md)。
+签名机可以完全没有外网。用 Release 附带的单文件 `outboard.pyz`（或 wheel）运行，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/zh/offline.md)。
 
 ### 保留期
 
@@ -228,7 +228,7 @@ pytest -q
 ruff check src tests
 ```
 
-`SPEC.md` 是规范（英文）。`docs/validation.md` 记录了操作员机器上的验证。self-test workflow 会签四份回执，断言有效的能过、伪造的过不了。
+`SPEC.md` 是规范（英文）。`docs/zh/validation.md` 记录了操作员机器上的验证。self-test workflow 会签四份回执，断言有效的能过、伪造的过不了。
 
 ## 不做什么
 

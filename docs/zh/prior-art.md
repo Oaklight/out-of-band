@@ -1,6 +1,6 @@
 # 先例与替代方案
 
-[English](prior-art.md) | [中文](prior-art.zh.md)
+[English](../en/prior-art.md) | [中文](prior-art.md)
 
 outboard 卡在一个很窄的位置。下面这些工具解决的是相邻问题，其中几个在条件满足时是更好的选择。
 

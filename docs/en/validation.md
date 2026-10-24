@@ -1,5 +1,7 @@
 # Operator-host validation
 
+[English](validation.md) | [中文](../zh/validation.md)
+
 Goal: show that the machine that runs the check and signs the receipt needs no
 inbound path and holds no GitHub credential.
 

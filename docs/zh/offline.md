@@ -1,6 +1,6 @@
 # 离线的操作员机器
 
-[English](offline.md) | [中文](offline.zh.md)
+[English](../en/offline.md) | [中文](offline.md)
 
 HPC 的登录节点常常没有外网、连不上 PyPI，也没有 GitHub 凭据。流程照样能走，只是传输得靠人。
 

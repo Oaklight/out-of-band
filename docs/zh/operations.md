@@ -1,6 +1,6 @@
 # 运维
 
-[English](operations.md) | [中文](operations.zh.md)
+[English](../en/operations.md) | [中文](operations.md)
 
 密钥、信任，以及结论不符合预期时怎么办。
 

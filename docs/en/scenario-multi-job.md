@@ -1,6 +1,6 @@
 # Scenario: several jobs or machines
 
-[English](scenario-multi-job.md) | [中文](scenario-multi-job.zh.md)
+[English](scenario-multi-job.md) | [中文](../zh/scenario-multi-job.md)
 
 One commit can be attested by several jobs: a smoke test on an old GPU, a
 benchmark on a new one, a numerical check on a cluster. Each gets its own

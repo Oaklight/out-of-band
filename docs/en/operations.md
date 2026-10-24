@@ -1,6 +1,6 @@
 # Operations
 
-[English](operations.md) | [中文](operations.zh.md)
+[English](operations.md) | [中文](../zh/operations.md)
 
 Keys, trust, and what to do when a verdict is not what you expected.
 

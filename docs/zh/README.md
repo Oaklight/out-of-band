@@ -1,6 +1,6 @@
 # 文档
 
-[English](README.md) | [中文](README.zh.md)
+[English](../en/README.md) | [中文](README.md)
 
 有些任务没法在 GitHub 上跑：租来的 GPU 机器上的 benchmark、工作站上的补丁冒烟测试、实验室内网里的一次训练。outboard 让跑任务的机器签一份很短的声明，GitHub 负责验证，再把结论发布成 check run。
 
@@ -10,14 +10,14 @@
 
 | 你的场景 | 读这篇 |
 | --- | --- |
-| 补丁测过才能合并 | [补丁门禁](scenario-patch-gate.zh.md) |
-| 把 benchmark 或模型运行记到某个 commit 上 | [硬件运行](scenario-hardware-run.zh.md) |
-| 不经过 PR，给分支上的推送做背书 | [分支门禁](scenario-branch-gate.zh.md) |
-| 多台机器、多个 job | [多 job](scenario-multi-job.zh.md) |
-| 签名机没有外网 | [离线机器](offline.zh.md) |
-| 生成、轮换密钥，或排查结论 | [运维](operations.zh.md) |
+| 补丁测过才能合并 | [补丁门禁](scenario-patch-gate.md) |
+| 把 benchmark 或模型运行记到某个 commit 上 | [硬件运行](scenario-hardware-run.md) |
+| 不经过 PR，给分支上的推送做背书 | [分支门禁](scenario-branch-gate.md) |
+| 多台机器、多个 job | [多 job](scenario-multi-job.md) |
+| 签名机没有外网 | [离线机器](offline.md) |
+| 生成、轮换密钥，或排查结论 | [运维](operations.md) |
 | 看自测跑出来的证据 | [验证记录](validation.md) |
-| 和 Sigstore、attestation 以及同类项目的关系 | [先例与替代方案](prior-art.zh.md) |
+| 和 Sigstore、attestation 以及同类项目的关系 | [先例与替代方案](prior-art.md) |
 
 ## 两个译名
 

@@ -1,6 +1,6 @@
 # 场景：多个 job、多台机器
 
-[English](scenario-multi-job.md) | [中文](scenario-multi-job.zh.md)
+[English](../en/scenario-multi-job.md) | [中文](scenario-multi-job.md)
 
 同一个 commit 可以由多个 job 背书：老 GPU 上的冒烟测试、新卡上的 benchmark、集群上的数值检查。每个 job 有自己的回执和 check。
 

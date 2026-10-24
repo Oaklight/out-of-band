@@ -1,6 +1,6 @@
 # Air-gapped operator hosts
 
-[English](offline.md) | [中文](offline.zh.md)
+[English](offline.md) | [中文](../zh/offline.md)
 
 HPC login nodes often have no outbound network, no route to PyPI, and no GitHub
 credential. The flow still works; only the transport is manual.
