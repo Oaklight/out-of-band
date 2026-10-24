@@ -180,6 +180,10 @@ outboard pack --evidence-dir ./evidence --out evidence.tgz
 
 `sign` 和 `verify` 不需要任何 GitHub 凭据，断网也能跑。发布得用 GitHub App 身份；在 Actions 里，自动签发的 `GITHUB_TOKEN` 就是 Actions App。PAT 只能建 commit status，所以 CLI 里没有 `publish`。
 
+### 离线操作员机器
+
+签名机可以完全没有外网。用 Release 里附带的 wheel 安装，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/offline.md)。
+
 ### 保留期
 
 check 和 workflow run 跟着 Actions 的保留期走（默认 90 天，公开仓库最多 90 天）。要长期留档，靠 PR 评论里的回执；证据目录留在操作员那边。
