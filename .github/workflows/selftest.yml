@@ -176,6 +176,17 @@ jobs:
       contents: read
       pull-requests: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install .
+
       - name: Post the valid receipt as a comment
         env:
           GH_TOKEN: ${{ github.token }}
@@ -189,8 +200,11 @@ jobs:
             | jq -r '.[][] | select(.user.login == "github-actions[bot]")
                      | select(.body | contains("<!-- receipt:v1 -->")) | .id' \
             | xargs -r -I{} gh api -X DELETE "repos/$GITHUB_REPOSITORY/issues/comments/{}"
-          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$BODY"
-          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body "$SECONDARY"
+          # Post the same rendered form an operator would use.
+          printf '%s' "$BODY" | oob render --block - > "$RUNNER_TEMP/valid.md"
+          printf '%s' "$SECONDARY" | oob render --block - > "$RUNNER_TEMP/secondary.md"
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/valid.md"
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/secondary.md"
 
   verify-comment:
     needs: [operator, comment]
