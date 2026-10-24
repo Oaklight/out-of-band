@@ -247,8 +247,8 @@ as data. The `policy` job resolves the head through the API so a comment on an
 issue does not fall back to `github.sha`, which is the base branch.
 
 Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
-`allowed-signers`, `trusted-authors`, `evidence-url`, `report`,
-`require-evidence`. Output: `verdict`. The action takes the same inputs plus
+`allowed-signers`, `trusted-authors`, `evidence-url`, `evidence-file`,
+`report`, `require-evidence`. Output: `verdict`. The action takes the same inputs plus
 `version`, `source`, `python-version`, and `token`.
 
 Pin `uses:` by full commit SHA and keep the version in a comment
@@ -256,33 +256,26 @@ Pin `uses:` by full commit SHA and keep the version in a comment
 
 ### Evidence
 
-Evidence is required by default. Pack the directory, put the archive somewhere
-the runner can fetch over HTTPS, and sign its location as a claim:
+Evidence is required by default. Pack the directory and supply the archive in
+one of two ways: `evidence-file`, a path on the runner, or `evidence-url`, an
+HTTPS address. The transport is your choice.
 
 ```bash
 oob pack --evidence-dir ./evidence --out evidence.tgz
-# upload evidence.tgz to a short-lived host, then
+# pass evidence-file, or upload it and sign the URL:
 oob sign ... --claims evidence_url="https://host/evidence.tgz"
 ```
 
-The claim is signed, so a comment is self-contained. The `evidence-url` input
-overrides it. `require-evidence: false` restores digest-only runs.
+The claim is signed, so a comment is self-contained. Resolution order is
+`evidence-file`, then `evidence-url`, then `claims.evidence_url`.
+`require-evidence: false` restores digest-only runs.
 
-The runner downloads the archive, extracts it safely, recomputes the digest,
-and compares it with the signed one. A missing URL is `E_NO_EVIDENCE`; a
-mismatch is `E_EVIDENCE_MISMATCH`. A matching bundle is uploaded as the
-`oob-evidence` artifact, and the run summary shows a manifest plus bounded text
-previews. The GitHub token is sent only to `api.github.com` and `github.com`;
-other hosts must serve a public or signed URL.
-
-For a short-lived host with no account, `litterbox.catbox.moe` accepts a 1 GB
-file for 1, 12, 24, or 72 hours:
-
-```bash
-curl -s -F "reqtype=fileupload" -F "time=24h" \
-  -F "fileToUpload=@evidence.tgz" \
-  https://litterbox.catbox.moe/resources/internals/api.php
-```
+The runner reads or downloads the archive, extracts it safely, recomputes the
+digest, and compares it with the signed one. Neither source is
+`E_NO_EVIDENCE`; a mismatch is `E_EVIDENCE_MISMATCH`. A matching bundle is
+uploaded as the `oob-evidence` artifact, and the run summary shows a manifest
+plus bounded text previews. The GitHub token is sent only to `api.github.com`
+and `github.com`; other hosts must serve a public or signed URL.
 
 ### Receipt collection
 

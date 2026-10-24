@@ -410,6 +410,7 @@ Everything below applies to both unless a rule names one carrier.
 | `allowed-signers` | string | `.github/allowed_signers` | path in the caller repository, read from the default branch |
 | `trusted-authors` | string | `""` | comma-separated logins allowed to supply a receipt. Empty means comments whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` |
 | `evidence-url` | string | `""` | HTTPS URL of a `.tar.gz` evidence bundle; when empty, the signed `claims.evidence_url` is used |
+| `evidence-file` | string | `""` | path to the evidence `.tar.gz` on the runner; takes precedence over `evidence-url` |
 | `report` | boolean | `true` | publish a check run and sticky comment; `false` computes the verdict only |
 | `require-evidence` | boolean | `true` | require a matching evidence archive; `false` allows digest only |
 
@@ -453,15 +454,16 @@ grant the same set.
    into a shell command.
 6. **Workflow.** Set a job timeout of 5 minutes. The action inherits the
    caller's job timeout.
-7. Evidence is required by default. Resolve the URL from `evidence-url`, or,
-   when that is empty, from the verified receipt's `claims.evidence_url`.
-   Download only `https`, with a 50 MiB cap, and send the GitHub token only to
-   `api.github.com` and `github.com`. Extract without following links or
-   escaping the directory, recompute the digest, and compare it with the signed
-   `evidence.digest`. No URL is `E_NO_EVIDENCE`; a mismatch is
-   `E_EVIDENCE_MISMATCH`. A matching bundle is uploaded as the `oob-evidence`
-   artifact, and the run summary shows a manifest and a bounded text preview.
-   With `require-evidence: false`, an absent URL means digest only.
+7. Evidence is required by default. Resolve the archive from `evidence-file`,
+   then `evidence-url`, then the verified receipt's `claims.evidence_url`.
+   A file is read from the runner; a URL must be `https`, with a 50 MiB cap,
+   and the GitHub token is sent only to `api.github.com` and `github.com`.
+   Extract without following links or escaping the directory, recompute the
+   digest, and compare it with the signed `evidence.digest`. Neither source is
+   `E_NO_EVIDENCE`; a mismatch is `E_EVIDENCE_MISMATCH`. A matching bundle is
+   uploaded as the `oob-evidence` artifact, and the run summary shows a manifest
+   and a bounded text preview. With `require-evidence: false`, an absent source
+   means digest only.
 8. On `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so no check can
    be published. Fork PRs must be driven by `pull_request_target`,
    `issue_comment`, or `workflow_dispatch` (§6.9).

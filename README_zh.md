@@ -212,31 +212,23 @@ jobs:
 
 这里用 `pull_request_target` 而不是 `pull_request`：它跑默认分支上的那份 workflow，PR 改不了审判自己的门。它拿着写权限，fork PR 也一样，所以这个 workflow 里不要 checkout、不要执行 PR 代码。验证器只从默认分支读 `allowed_signers`，并把回执当数据。`policy` 通过 API 解析 head，这样评论触发的运行不会退回成 `github.sha`（那是基分支）。
 
-输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`、`evidence-url`、`report`、`require-evidence`；输出：`verdict`。action 还多 `version`、`source`、`python-version`、`token` 四个输入。
+输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`、`evidence-url`、`evidence-file`、`report`、`require-evidence`；输出：`verdict`。action 还多 `version`、`source`、`python-version`、`token` 四个输入。
 
 `uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.4.1`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
 
 ### 证据
 
-默认必须提交证据。先用 `oob pack` 打包，把包放到 runner 能通过 HTTPS 取到的位置，再把地址签进 claims：
+默认必须提交证据。打包后，用两种方式之一交给验证方：`evidence-file`（runner 上的文件路径）或 `evidence-url`（HTTPS 地址）。怎么存放由你决定。
 
 ```bash
 oob pack --evidence-dir ./evidence --out evidence.tgz
-# 上传 evidence.tgz 到短期存储，然后
+# 传 evidence-file，或者上传后把地址签进去：
 oob sign ... --claims evidence_url="https://host/evidence.tgz"
 ```
 
-地址在签名覆盖范围内，所以一条评论就够了；`evidence-url` 输入可以覆盖它。`require-evidence: false` 恢复只签摘要的模式。
+地址在签名覆盖范围内，所以一条评论就够了。解析顺序是 `evidence-file`、`evidence-url`、`claims.evidence_url`。`require-evidence: false` 恢复只签摘要的模式。
 
-runner 下载、安全解包、重算摘要并比对。没有地址是 `E_NO_EVIDENCE`，对不上是 `E_EVIDENCE_MISMATCH`。一致就作为 `oob-evidence` artifact 上传，并在 run summary 里列出清单和有限的文本预览。GitHub token 只发给 `api.github.com` 和 `github.com`，其他主机必须是公开或自带签名的 URL。
-
-不需要注册的短期存储可以用 `litterbox.catbox.moe`，1 GB，保留 1、12、24 或 72 小时：
-
-```bash
-curl -s -F "reqtype=fileupload" -F "time=24h" \
-  -F "fileToUpload=@evidence.tgz" \
-  https://litterbox.catbox.moe/resources/internals/api.php
-```
+runner 读取或下载、安全解包、重算摘要并比对。两种来源都没有是 `E_NO_EVIDENCE`，对不上是 `E_EVIDENCE_MISMATCH`。一致就作为 `oob-evidence` artifact 上传，并在 run summary 里列出清单和有限的文本预览。GitHub token 只发给 `api.github.com` 和 `github.com`，其他主机必须是公开或自带签名的 URL。
 
 ### 回执从哪来
 
