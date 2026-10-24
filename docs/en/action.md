@@ -41,6 +41,7 @@ it:
 | `allowed-signers` | `.github/allowed_signers` | path in the caller repository, read from the default branch |
 | `trusted-authors` | empty | comma-separated logins allowed to supply a receipt |
 | `evidence-url` | empty | HTTPS URL of an evidence `.tar.gz` |
+| `evidence-file` | empty | path to the evidence `.tar.gz` on the runner; takes precedence over `evidence-url` |
 | `report` | `true` | publish the check run and sticky comment; `false` computes the verdict only |
 | `require-evidence` | `true` | require a matching evidence archive; `false` allows digest only |
 | `version` | `0.4.0` | out-of-band version to install; empty installs nothing |

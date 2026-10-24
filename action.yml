@@ -37,7 +37,11 @@ inputs:
     required: false
     default: ""
   evidence-url:
-    description: HTTPS URL of a .tar.gz evidence bundle; empty checks the digest only
+    description: HTTPS URL of a .tar.gz evidence bundle; used when evidence-file is empty
+    required: false
+    default: ""
+  evidence-file:
+    description: Path to the evidence .tar.gz on the runner; takes precedence over evidence-url
     required: false
     default: ""
   report:
@@ -143,34 +147,45 @@ runs:
 
     - name: Fetch and check evidence
       id: evidence
-      if: ${{ inputs.required == 'true' && steps.resolve.outputs.found == 'true' && (inputs.evidence-url != '' || inputs['require-evidence'] == 'true') && (steps.verify.outputs.exit == '0' || steps.verify.outputs.exit == '1') }}
+      if: ${{ inputs.required == 'true' && steps.resolve.outputs.found == 'true' && (inputs.evidence-url != '' || inputs['evidence-file'] != '' || inputs['require-evidence'] == 'true') && (steps.verify.outputs.exit == '0' || steps.verify.outputs.exit == '1') }}
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
         URL: ${{ inputs.evidence-url }}
+        FILE: ${{ inputs['evidence-file'] }}
       run: |
         set +e
-        url="$URL"
-        if [ -z "$url" ]; then
-          url=$(python -m oob.workflow evidence-url --receipt "$RUNNER_TEMP/receipt.md" 2>/dev/null)
-        fi
-        if [ -z "$url" ]; then
-          echo "status=missing" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-        # Only send the GitHub token to GitHub. Any other host must serve the
-        # archive publicly or with its own signed URL.
-        auth=()
-        case "$url" in
-          https://api.github.com/*|https://github.com/*)
-            auth=(-H "Authorization: Bearer $GH_TOKEN")
-            ;;
-        esac
-        curl -fsSL --max-time 120 --max-filesize 52428800 \
-          "${auth[@]}" -o "$RUNNER_TEMP/evidence.tgz" "$url"
-        if [ $? -ne 0 ]; then
-          echo "status=invalid" >> "$GITHUB_OUTPUT"
-          exit 0
+        if [ -n "$FILE" ]; then
+          if [ ! -f "$FILE" ]; then
+            echo "status=invalid" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          cp "$FILE" "$RUNNER_TEMP/evidence.tgz" || {
+            echo "status=invalid" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+        else
+          url="$URL"
+          if [ -z "$url" ]; then
+            url=$(python -m oob.workflow evidence-url --receipt "$RUNNER_TEMP/receipt.md" 2>/dev/null)
+          fi
+          if [ -z "$url" ]; then
+            echo "status=missing" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Only send the GitHub token to GitHub. Any other host must serve
+          # the archive publicly or with its own signed URL.
+          auth=()
+          case "$url" in
+            https://api.github.com/*|https://github.com/*)
+              auth=(-H "Authorization: Bearer $GH_TOKEN")
+              ;;
+          esac
+          curl -fsSL --max-time 120 --max-filesize 52428800 \
+            "${auth[@]}" -o "$RUNNER_TEMP/evidence.tgz" "$url" || {
+            echo "status=invalid" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
         fi
         python -m oob.workflow evidence \
           --receipt "$RUNNER_TEMP/receipt.md" \
