@@ -76,16 +76,25 @@ dispatch or comment.
 
 ## Carry the tool in
 
-The wheel is pure Python (`py3-none-any`), so any Python 3.11+ interpreter can
-use it.
+One file is usually enough. `outboard.pyz` is attached to each release: a
+zipapp holding the package and an entry point, needing only Python 3.11+.
 
-On a connected machine:
+```bash
+scp outboard.pyz host:
+ssh host python3 outboard.pyz --version
+```
+
+It behaves like the installed command, so every example below works with
+`python3 outboard.pyz` in place of `outboard`.
+
+If the site prefers a normal install, the wheel is pure Python
+(`py3-none-any`), so any 3.11+ interpreter can use it. On a connected machine:
 
 ```bash
 pip download outboard==0.3.0 -d wheelhouse
 ```
 
-Copy `wheelhouse/` to the host, then:
+Copy `wheelhouse/` over, then:
 
 ```bash
 python3 -m venv ~/outboard
@@ -93,8 +102,8 @@ python3 -m venv ~/outboard
 ~/outboard/bin/outboard --version
 ```
 
-The same wheel and sdist are attached to the GitHub release, so they can be
-copied from a browser too.
+The wheel, sdist and zipapp are all on the release page, so they can be fetched
+from a browser too.
 
 ## Carry the repository in
 

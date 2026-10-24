@@ -18,8 +18,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "ruff==0.17.2"
-      - run: ruff check src tests
-      - run: ruff format --check src tests
+      - run: ruff check src tests scripts
+      - run: ruff format --check src tests scripts
 
   test:
     runs-on: ubuntu-latest
@@ -34,3 +34,33 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
       - run: pytest -q
+
+  zipapp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/build_zipapp.py
+      - run: python dist/outboard.pyz --version
+      - name: sign and verify with the archive alone
+        run: |
+          git config --global user.email ci@example.com
+          git config --global user.name ci
+          work=$(mktemp -d)
+          git -C "$work" init -q
+          echo hi > "$work/f.txt"
+          git -C "$work" add f.txt
+          git -C "$work" commit -qm init
+          mkdir -p "$work/ev"
+          echo "loss 1.23" > "$work/ev/log.txt"
+          ssh-keygen -q -t ed25519 -N "" -f "$work/key"
+          echo "operator $(cat "$work/key.pub")" > "$work/allowed_signers"
+          cd "$work"
+          python "$GITHUB_WORKSPACE/dist/outboard.pyz" sign \
+            --job smoke --commit "$(git rev-parse HEAD)" --result pass \
+            --evidence-dir ev --key key --repo Oaklight/outboard --out receipt.md
+          python "$GITHUB_WORKSPACE/dist/outboard.pyz" verify \
+            --block receipt.md --allowed-signers allowed_signers \
+            --repo Oaklight/outboard --commit "$(git rev-parse HEAD)" --expect-job smoke
