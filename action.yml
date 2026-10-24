@@ -160,7 +160,7 @@ runs:
             echo "status=invalid" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          cp "$FILE" "$RUNNER_TEMP/evidence.tgz" || {
+          cp "$FILE" "$RUNNER_TEMP/oob-evidence.tgz" || {
             echo "status=invalid" >> "$GITHUB_OUTPUT"
             exit 0
           }
@@ -182,14 +182,14 @@ runs:
               ;;
           esac
           curl -fsSL --max-time 120 --max-filesize 52428800 \
-            "${auth[@]}" -o "$RUNNER_TEMP/evidence.tgz" "$url" || {
+            "${auth[@]}" -o "$RUNNER_TEMP/oob-evidence.tgz" "$url" || {
             echo "status=invalid" >> "$GITHUB_OUTPUT"
             exit 0
           }
         fi
         python -m oob.workflow evidence \
           --receipt "$RUNNER_TEMP/receipt.md" \
-          --archive "$RUNNER_TEMP/evidence.tgz" \
+          --archive "$RUNNER_TEMP/oob-evidence.tgz" \
           --out "$RUNNER_TEMP/evidence"
         if [ $? -eq 0 ]; then
           echo "status=ok" >> "$GITHUB_OUTPUT"
