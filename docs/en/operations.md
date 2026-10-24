@@ -94,7 +94,8 @@ oob verify \
 ```
 
 Exit codes: 0 pass, 1 valid fail, 2 absent or invalid, 3 usage or internal. The
-workflow maps these to `success`, `failure`, and `action_required`.
+workflow maps 0 to `success`, and both 1 and 2 to `failure`; the summary says
+which one it was.
 
 ## Timing
 
@@ -116,5 +117,5 @@ evidence download.
   safe; changing a file is not.
 - Anything over 50 MiB is rejected before extraction.
 - Evidence that fails these checks turns a passing receipt into
-  `E_EVIDENCE_MISMATCH` and `action_required`. It does not fall back to
+  `E_EVIDENCE_MISMATCH` and `failure`. It does not fall back to
   "digest only".

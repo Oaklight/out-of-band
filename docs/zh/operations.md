@@ -75,7 +75,7 @@ oob verify \
   --expect-job <job>
 ```
 
-退出码：0 通过，1 有效但失败，2 缺失或无效，3 用法或内部错误。workflow 把它们映射成 `success`、`failure`、`action_required`。
+退出码：0 通过，1 有效但失败，2 缺失或无效，3 用法或内部错误。workflow 把 0 映射成 `success`，把 1 和 2 都映射成 `failure`；具体是哪一种看 summary。
 
 ## 时间
 
@@ -89,4 +89,4 @@ oob verify \
 - 包必须是 `oob pack` 生成的 `.tar.gz`，或布局一致：没有绝对路径、没有 `..`、没有链接、没有特殊文件。
 - digest 覆盖路径和文件内容，不是压缩包字节。重新打包没关系，改文件就有关系。
 - 超过 50 MiB 在解压前就会被拒。
-- 证据检查失败会把原本通过的回执变成 `E_EVIDENCE_MISMATCH` 和 `action_required`，不会退化成"只看 digest"。
+- 证据检查失败会把原本通过的回执变成 `E_EVIDENCE_MISMATCH` 和 `failure`，不会退化成"只看 digest"。

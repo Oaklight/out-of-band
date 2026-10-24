@@ -75,7 +75,7 @@ def test_collect_rejects_disagreeing_trusted_blocks(
     ("required", "found", "verify_exit", "verdict", "expected"),
     [
         ("false", "false", "", None, ("not applicable", "OK", "success", False)),
-        ("true", "false", "", None, ("unverified", "E_NO_BLOCK", "action_required", False)),
+        ("true", "false", "", None, ("unverified", "E_NO_BLOCK", "failure", False)),
         ("true", "true", "0", {"code": "OK"}, ("verified", "OK", "success", True)),
         ("true", "true", "1", {"code": "OK"}, ("failed", "OK", "failure", True)),
         (
@@ -83,7 +83,7 @@ def test_collect_rejects_disagreeing_trusted_blocks(
             "true",
             "2",
             {"code": "E_NO_PRINCIPAL"},
-            ("unverified", "E_NO_PRINCIPAL", "action_required", False),
+            ("unverified", "E_NO_PRINCIPAL", "failure", False),
         ),
     ],
 )
@@ -395,4 +395,4 @@ def test_decide_rejects_mismatched_evidence(
     monkeypatch.setenv("VERIFY_EXIT", "0")
     monkeypatch.setenv("EVIDENCE_STATUS", "invalid")
     (tmp_path / "verdict.json").write_text('{"code":"OK"}')
-    assert workflow._decide() == ("unverified", "E_EVIDENCE_MISMATCH", "action_required", False)
+    assert workflow._decide() == ("unverified", "E_EVIDENCE_MISMATCH", "failure", False)

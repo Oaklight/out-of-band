@@ -70,11 +70,12 @@ receipt, the job name, which key, required or optional).
 |---|---|---|
 | valid, `result: pass` | 0 | `success` |
 | valid, `result: fail` | 1 | `failure` |
-| absent or invalid | 2 | `action_required` |
+| absent or invalid | 2 | `failure` |
 | usage or internal error | 3 | nothing published; the job fails |
 
 A missing receipt is **unverified**, never skipped. If the tool cannot run, the
-required check stays pending and the merge stays blocked.
+required check stays pending and the merge stays blocked. Every unverified
+outcome uses the `failure` conclusion; the title and summary carry the reason.
 
 ## Install
 
