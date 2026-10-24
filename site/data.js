@@ -5,6 +5,7 @@ const UI = {
     navTour: "Tour",
     navScenarios: "Scenarios",
     navStates: "States",
+    navFaq: "Why not…",
     kicker: "Out-of-band CI receipts",
     title: "Prove the test ran, when GitHub cannot run it.",
     lede:
@@ -28,6 +29,56 @@ const UI = {
     adoptTitle: "Adopting it for real",
     adoptLede:
       "Five steps, in order. The guides in docs/ carry the exact commands.",
+    adoptNote:
+      "You write the workflow once. A new pull request needs a receipt, not a workflow edit. Changing the pinned SHA is an upgrade you choose, not part of every PR.",
+    limitsTitle: "What “GitHub can't run it” actually means",
+    limitsLede: "Usually one of these four.",
+    limits: [
+      {
+        title: "No runner has the hardware",
+        text: "An accelerator, a capture card, a licensed toolchain, a particular OS image.",
+      },
+      {
+        title: "No route in or out",
+        text: "Behind a firewall, or a site that forbids agents and outbound polling.",
+      },
+      {
+        title: "The data cannot leave",
+        text: "The test needs data that is not allowed to reach a hosted runner.",
+      },
+      {
+        title: "It is not a CI machine",
+        text: "An hourly rental, or a login node with a scheduler. A runner there is disproportionate or forbidden.",
+      },
+    ],
+    faqTitle: "Why not just…",
+    faqLede: "These alternatives all have a place. Here is where each one stops.",
+    faq: [
+      {
+        q: "…run a self-hosted runner on that machine?",
+        a: "The right answer when the machine can reach GitHub and you control what runs on it. It needs persistent outbound access, and it executes workflow code from the repository, which is a serious attack surface for a public repo. Ephemeral GPUs and scheduler-managed login nodes rarely fit. If it fits, use it; outboard is for when it does not.",
+      },
+      {
+        q: "…put a GitHub token on the machine and post a status?",
+        a: "A long-lived credential now lives on the machine you wanted to keep clean. A PAT can create commit statuses but not check runs, and a status is a label: nothing binds it to the evidence or the tree. A receipt needs no credential, and the signature covers the claim itself.",
+      },
+      {
+        q: "…just run the test in CI?",
+        a: "If a hosted runner can run it, do that. Outboard is a fallback, not a default.",
+      },
+      {
+        q: "…approve it by hand with a comment?",
+        a: "“LGTM” names no commit, no job, and no evidence, and it can be edited or deleted. A receipt is machine-checked, bound to one commit and one evidence digest, and stays verifiable.",
+      },
+      {
+        q: "…upload the log somewhere and link it?",
+        a: "Anyone can upload anything, and a link proves nothing about the commit. Evidence upload is optional here; when it is used, the bundle is re-hashed against the signed digest before it is kept.",
+      },
+      {
+        q: "…use Jenkins?",
+        a: "Fine if you have it and it can reach GitHub. It still needs a credential and a network path, and its result is a status like any other. Outboard covers the case where neither is available.",
+      },
+    ],
     footerDocs: "Docs",
     footerRelease: "Releases",
     openGuide: "Open the guide →",
@@ -68,6 +119,7 @@ const UI = {
     navTour: "导览",
     navScenarios: "场景",
     navStates: "状态",
+    navFaq: "为什么不用…",
     kicker: "带外 CI 回执",
     title: "GitHub 跑不了的测试，也能证明它跑过。",
     lede:
@@ -88,6 +140,56 @@ const UI = {
       "把“判断不了”说成“通过”的门禁，比没有门禁更糟。这几种状态始终分开。",
     adoptTitle: "真的要用起来",
     adoptLede: "五步，按顺序来。具体命令在 docs/ 里。",
+    adoptNote:
+      "workflow 只写一次。之后每个 PR 需要的是回执，不是改 workflow。改固定的 SHA 是一次你主动决定的小升级，不是每个 PR 的例行公事。",
+    limitsTitle: "所谓“GitHub 跑不了”，具体指什么",
+    limitsLede: "通常就是下面四种之一。",
+    limits: [
+      {
+        title: "没有 runner 具备那套硬件",
+        text: "加速卡、采集卡、带 license 的工具链、某个特定的系统镜像。",
+      },
+      {
+        title: "进不来，也出不去",
+        text: "机器在防火墙后面，或者站点禁止装 agent、禁止向外轮询。",
+      },
+      {
+        title: "数据不能离开",
+        text: "测试要用的数据不允许出现在托管 runner 上。",
+      },
+      {
+        title: "它根本不是 CI 机器",
+        text: "按小时租的卡，或者带调度器的登录节点。在上面装 runner 要么小题大做，要么不被允许。",
+      },
+    ],
+    faqTitle: "那为什么不直接用……",
+    faqLede: "这些替代方案各有适用的时候。下面说它们各自卡在哪。",
+    faq: [
+      {
+        q: "……在那台机器上跑 self-hosted runner？",
+        a: "机器能连 GitHub、你也管得住上面跑什么，这就是正解。但它要求持续的出网连接，而且会执行仓库里的 workflow 代码；对公开仓库来说，这是实打实的攻击面。按小时租的 GPU、带调度器的登录节点，通常不合适。合适就用；outboard 管的是不合适的那种。",
+      },
+      {
+        q: "……在机器上放一个 GitHub token，直接发 status？",
+        a: "那台你本想保持干净的机器上，从此多了一个长期凭据。PAT 只能创建 commit status，不能创建 check run；status 只是个标签，既不绑定证据，也不绑定 tree。回执不需要凭据，签名覆盖的就是声明本身。",
+      },
+      {
+        q: "……直接在 CI 里跑？",
+        a: "托管 runner 跑得了，就该在 CI 里跑。outboard 是退路，不是默认。",
+      },
+      {
+        q: "……人工评论一句批准？",
+        a: "“LGTM”没有指明 commit、job，也没有证据，而且可以改、可以删。回执是机器校验的，绑定一个 commit 和一份证据 digest，之后仍然可验证。",
+      },
+      {
+        q: "……把日志传到某个地方，贴个链接？",
+        a: "谁都能上传任何东西，一个链接也证明不了它和 commit 的关系。这里的证据上传是可选的；用了的话，会按签名 digest 重新校验，对不上就不保留。",
+      },
+      {
+        q: "……用 Jenkins？",
+        a: "有 Jenkins、它又能连 GitHub，那就用。但它同样需要凭据和一条网络通路，结果也只是个 status。两者都没有的时候，才轮到 outboard。",
+      },
+    ],
     footerDocs: "文档",
     footerRelease: "发布",
     openGuide: "打开指南 →",
@@ -145,13 +247,19 @@ const SCENARIOS = [
           { t: "event", text: "pull_request · synchronize" },
           {
             t: "pr",
-            title: { en: "Add patches README", zh: "补充 patches 说明" },
+            title: {
+              en: "Fix fp16 accumulation in attention",
+              zh: "修正 attention 的 fp16 累加",
+            },
             meta: {
-              en: "#5 · main ← patch/readme · 1 file",
-              zh: "#5 · main ← patch/readme · 1 个文件",
+              en: "#5 · main ← kernel/fp16 · 1 file",
+              zh: "#5 · main ← kernel/fp16 · 1 个文件",
             },
           },
-          { t: "files", items: [{ path: "patches/README.md", add: "+12" }] },
+          {
+            t: "files",
+            items: [{ path: "patches/0001-fp16-accum.patch", add: "+18", del: "−2" }],
+          },
           {
             t: "checks",
             items: [
@@ -177,7 +285,7 @@ const SCENARIOS = [
             title: { en: "Your workstation", zh: "你的工作站" },
             lines: [
               { k: "cmd", text: "$ gh pr checkout 5" },
-              { k: "out", text: "Switched to branch 'patch/readme'" },
+              { k: "out", text: "Switched to branch 'kernel/fp16'" },
               { k: "cmd", text: "$ git rev-parse HEAD" },
               { k: "ok", text: "6e5b8a482f1baf41c8080b79501294cbf4057987" },
             ],
@@ -207,10 +315,15 @@ const SCENARIOS = [
             text:
               "jobs:\n" +
               "  policy:\n" +
-              "    if: ... # this PR touches patches/\n" +
-              "    outputs: { pr, commit, requires }\n" +
+              "    outputs:\n" +
+              "      pr:       ${{ steps.ctx.outputs.pr }}\n" +
+              "      commit:   ${{ steps.ctx.outputs.commit }}\n" +
+              "      requires: ${{ steps.paths.outputs.requires }}\n" +
               "    steps:\n" +
-              "      - gh api .../pulls/$PR/files\n" +
+              "      - id: ctx\n" +
+              "        run: gh api .../pulls/$PR --jq .head.sha\n" +
+              "      - id: paths\n" +
+              "        run: gh api .../pulls/$PR/files\n" +
               "  verified:\n" +
               "    needs: policy\n" +
               "    uses: Oaklight/outboard/.github/workflows/verify.yml@<sha>\n" +
@@ -222,10 +335,43 @@ const SCENARIOS = [
               "      check-name: patch-smoke-verified",
           },
           {
+            t: "kv",
+            items: [
+              {
+                k: "<sha>",
+                v: {
+                  en: "the outboard commit you pin; copy it from the release page",
+                  zh: "你要固定的 outboard commit，从 release 页面复制",
+                },
+              },
+              {
+                k: "job",
+                v: {
+                  en: "must equal the operator's <code>--job</code>",
+                  zh: "必须和操作员的 <code>--job</code> 一致",
+                },
+              },
+              {
+                k: "check-name",
+                v: {
+                  en: "the string branch protection requires",
+                  zh: "分支保护要匹配的那个字符串",
+                },
+              },
+              {
+                k: "trusted-authors",
+                v: {
+                  en: "your GitHub login; optional, but recommended",
+                  zh: "你的 GitHub 登录名；可选，但建议填",
+                },
+              },
+            ],
+          },
+          {
             t: "note",
             text: {
-              en: "<code>check-name</code> is the string branch protection matches. Treat it as public API.",
-              zh: "<code>check-name</code> 是分支保护匹配的字符串，把它当公开 API 对待。",
+              en: "Everything inside <code>${{ }}</code> is filled by GitHub at run time. You do not touch it.",
+              zh: "<code>${{ }}</code> 里的东西由 GitHub 在运行时填好，不用管。",
             },
           },
         ],

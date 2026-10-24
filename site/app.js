@@ -8,14 +8,19 @@
   };
 
   function detectLang() {
+    const asked = new URLSearchParams(location.search).get("lang");
+    if (asked === "en" || asked === "zh") return asked;
     try {
       const saved = localStorage.getItem("outboard-lang");
       if (saved === "en" || saved === "zh") return saved;
     } catch (_) {
       /* storage can be unavailable; fall through */
     }
-    const nav = (navigator.language || "en").toLowerCase();
-    return nav.startsWith("zh") ? "zh" : "en";
+    // English is the default. Chinese is offered when it is the visitor's
+    // first preference, or when they pick it with the toggle.
+    const preferred =
+      (navigator.languages && navigator.languages[0]) || navigator.language || "en";
+    return preferred.toLowerCase().startsWith("zh") ? "zh" : "en";
   }
 
   function saveLang() {
@@ -66,6 +71,8 @@
 
     renderActors();
     renderTabs();
+    renderLimits();
+    renderFaq();
     renderVariants();
     renderStates();
     renderAdopt();
@@ -102,6 +109,30 @@
         renderStep(true);
       });
       host.appendChild(b);
+    });
+  }
+
+  function renderLimits() {
+    const host = document.getElementById("limits-list");
+    host.replaceChildren();
+    UI[state.lang].limits.forEach((item) => {
+      const li = node("li", "limit");
+      li.appendChild(node("strong", "", item.title));
+      li.appendChild(node("p", "", item.text));
+      host.appendChild(li);
+    });
+  }
+
+  function renderFaq() {
+    const host = document.getElementById("faq-list");
+    host.replaceChildren();
+    UI[state.lang].faq.forEach((item, i) => {
+      const d = node("details", "faq-item");
+      if (i === 0) d.open = true;
+      const summary = node("summary", "", item.q);
+      d.appendChild(summary);
+      d.appendChild(node("p", "", item.a));
+      host.appendChild(d);
     });
   }
 
@@ -312,6 +343,14 @@
         wrap.appendChild(head);
         wrap.appendChild(node("pre", "", block.text));
         return wrap;
+      }
+      case "kv": {
+        const dl = node("dl", "kv");
+        block.items.forEach((item) => {
+          dl.appendChild(node("dt", "", item.k));
+          dl.appendChild(html("dd", "", L(item.v)));
+        });
+        return dl;
       }
       case "checklist": {
         const wrap = node("ul", "checklist");
