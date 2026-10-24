@@ -591,6 +591,12 @@ It does **not** prove:
 
 A receipt is an attestation by a key holder. It is not a proof of correctness.
 
+A receipt also does not expire. It binds a commit, not a moment: one signed
+weeks ago for the same commit verifies exactly like one signed a minute ago,
+and `issued_at` is recorded, not enforced. Consumers that need recency, such as
+"this job ran against the current environment", must enforce it outside this
+mechanism.
+
 ## 9. Versioning
 
 - `schema` is the compatibility boundary. A v1 verifier accepts only

@@ -119,6 +119,12 @@ outboard verify --block block.md \
   --repo owner/name --commit "$SHA" --expect-job smoke
 ```
 
+## Documentation
+
+Scenario guides live in [docs/](docs/README.md): a patch gate, a benchmark run,
+branch attestation without a PR, several jobs on one commit, air-gapped hosts,
+and operations. Start there rather than from the input list below.
+
 ## Wiring a consumer
 
 ```yaml

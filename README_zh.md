@@ -100,6 +100,10 @@ outboard verify --block block.md \
   --repo owner/name --commit "$SHA" --expect-job smoke
 ```
 
+## 文档
+
+按场景写的指南在 [docs/](docs/README.zh.md)：补丁门禁、benchmark 记录、不经过 PR 的分支背书、同一个 commit 上的多个 job、离线机器，以及运维。建议先从那里看，再回来看下面这串输入参数。
+
 ## 接到自己的仓库
 
 ```yaml

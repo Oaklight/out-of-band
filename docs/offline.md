@@ -1,5 +1,7 @@
 # Air-gapped operator hosts
 
+[English](offline.md) | [中文](offline.zh.md)
+
 HPC login nodes often have no outbound network, no route to PyPI, and no GitHub
 credential. The flow still works; only the transport is manual.
 
@@ -76,12 +78,12 @@ dispatch or comment.
 
 ## Carry the tool in
 
-One file is usually enough. `outboard.pyz` is attached to each release: a
+One file is usually enough. Each release carries `outboard-<version>.pyz`: a
 zipapp holding the package and an entry point, needing only Python 3.11+.
 
 ```bash
-scp outboard.pyz host:
-ssh host python3 outboard.pyz --version
+scp outboard-0.3.0.pyz host:
+ssh host python3 outboard-0.3.0.pyz --version
 ```
 
 It behaves like the installed command, so every example below works with
