@@ -100,11 +100,16 @@ outboard sign \
   --commit "$(git rev-parse HEAD)" \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard
+  --key ~/.ssh/outboard \
+  --output-file ./check-output.txt
 ```
 
 That prints one block: an HTML marker, one line of JSON, and an SSH signature.
 Post it as a PR comment, or hand it to a `workflow_dispatch` input.
+
+`--output-file` is optional. It embeds up to 4 KiB of what the check printed
+into the signed receipt (schema `receipt/v2`), and the check page shows it
+folded under the summary. Without it the receipt stays `receipt/v1`.
 
 Verify locally before posting:
 

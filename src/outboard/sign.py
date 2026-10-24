@@ -11,7 +11,7 @@ from . import __version__, gitops
 from .claims import parse_pairs
 from .errors import OutboardError
 from .evidence import digest_directory
-from .receipt import build, compose_block, serialize, validate
+from .receipt import MAX_OUTPUT_BYTES, build, compose_block, serialize, validate
 
 
 def _now() -> str:
@@ -36,6 +36,20 @@ def _ssh_sign(payload: bytes, key: Path) -> str:
         return signature.read_text(encoding="utf-8")
 
 
+def _read_output(path: str) -> str | None:
+    try:
+        data = Path(path).read_bytes()
+    except OSError as exc:
+        raise OutboardError("E_USAGE", f"cannot read output file: {path}") from exc
+    if len(data) > MAX_OUTPUT_BYTES:
+        raise OutboardError("E_OUTPUT_LIMIT", f"output exceeds {MAX_OUTPUT_BYTES} bytes")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise OutboardError("E_USAGE", "output is not valid UTF-8") from exc
+    return text if text.strip() else None
+
+
 def sign(
     *,
     job: str,
@@ -46,6 +60,7 @@ def sign(
     repo: str | None = None,
     claims: list[str] | None = None,
     allow_dirty: bool = False,
+    output_file: str | None = None,
 ) -> str:
     gitops.repo_root()  # fail early outside a repository
     resolved_repo = repo or gitops.origin_repo()
@@ -70,6 +85,7 @@ def sign(
         count=count,
         digest=digest,
         claims=parse_pairs(claims or []),
+        output=_read_output(output_file) if output_file else None,
     )
     validate(receipt)
     payload = serialize(receipt)

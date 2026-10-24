@@ -7,6 +7,7 @@ App identity, so publishing stays in the workflow (SPEC.md §5.3).
 
 from __future__ import annotations
 
+import html
 import json
 import os
 import subprocess
@@ -164,21 +165,35 @@ def collect() -> int:
     return 0
 
 
-def _claims_block(receipt_path: Path) -> str:
-    """Claims are shown only after verification; parse errors are ignored.
+def _receipt_display(receipt_path: Path) -> tuple[str, str]:
+    """Return (claims block, output details), both empty when absent.
 
-    Rendered as an indented code block, so a claim containing backticks cannot
-    break out of a fence.
+    Called only after verification. Claims use an indented code block; the
+    output uses <pre> so a transcript cannot inject Markdown or mentions.
     """
     try:
         payload, _ = extract(receipt_path.read_text(encoding="utf-8"))
-        claims = json.loads(payload).get("claims") or {}
+        data = json.loads(payload)
     except (OSError, OutboardError, json.JSONDecodeError):
-        return ""
-    if not claims:
-        return ""
-    body = json.dumps(claims, indent=2, sort_keys=True)
-    return "\n".join("    " + line for line in body.splitlines()) + "\n"
+        return "", ""
+    if not isinstance(data, dict):
+        return "", ""
+
+    claims_block = ""
+    claims = data.get("claims") or {}
+    if isinstance(claims, dict) and claims:
+        body = json.dumps(claims, indent=2, sort_keys=True)
+        claims_block = "\n".join("    " + line for line in body.splitlines()) + "\n"
+
+    output_block = ""
+    output = data.get("output")
+    if isinstance(output, str) and output.strip():
+        output_block = (
+            "<details><summary>check output</summary>\n\n"
+            f"<pre>{html.escape(output)}</pre>\n\n"
+            "</details>\n"
+        )
+    return claims_block, output_block
 
 
 def _clean(value: str) -> str:
@@ -237,7 +252,7 @@ def publish() -> int:
     source = os.environ.get("SOURCE") or "none"
     temp = Path(os.environ["RUNNER_TEMP"])
 
-    claims = _claims_block(temp / "receipt.md") if verified else ""
+    claims, output_block = _receipt_display(temp / "receipt.md") if verified else ("", "")
     summary = _summary(state, code, job, commit, source, claims)
 
     payload = {
@@ -245,7 +260,11 @@ def publish() -> int:
         "head_sha": commit,
         "status": "completed",
         "conclusion": conclusion,
-        "output": {"title": f"outboard: {state}", "summary": summary},
+        "output": {
+            "title": f"outboard: {state}",
+            "summary": summary,
+            "text": output_block,
+        },
     }
     _gh("api", "-X", "POST", f"repos/{repo}/check-runs", "--input", "-", stdin=json.dumps(payload))
 
@@ -264,7 +283,7 @@ def publish() -> int:
             if STATE_MARKER in (comment.get("body") or "")
             and (comment.get("user") or {}).get("login") == login
         ]
-        body = f"{STATE_MARKER}\n{summary}"
+        body = f"{STATE_MARKER}\n{summary}\n{output_block}"
         if existing:
             _gh(
                 "api",

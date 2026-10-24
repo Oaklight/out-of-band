@@ -206,3 +206,38 @@ def test_wildcard_principal_is_a_config_error(
         run_verify(block, allowed, head)
     assert caught.value.code == "E_BAD_ALLOWED_SIGNERS"
     assert caught.value.exit_code == 3
+
+
+def test_v2_receipt_with_output_verifies(
+    repo: Path, keypair: Path, evidence: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(repo)
+    head = _git(repo, "rev-parse", "HEAD")
+    output = tmp_path / "output.txt"
+    output.write_text("check started\nall good\n", encoding="utf-8")
+    block = sign(
+        job="smoke",
+        commit=head,
+        result="pass",
+        evidence_dir=str(evidence),
+        key=str(keypair),
+        repo="acme/widget",
+        output_file=str(output),
+    )
+    block_path = tmp_path / "block.md"
+    block_path.write_text(block, encoding="utf-8")
+    allowed = tmp_path / "allowed_signers"
+    allowed.write_text(f"operator {keypair.with_suffix('.pub').read_text().strip()}\n")
+    assert run_verify(block_path, allowed, head)["verdict"] == "pass"
+
+
+def test_v1_receipt_rejects_an_output_field(
+    repo: Path, keypair: Path, evidence: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(repo)
+    block, allowed, head = make_block(repo, keypair, evidence, tmp_path)
+    payload, signature = extract(block.read_text())
+    receipt = json.loads(payload)
+    receipt["output"] = "sneaked in"
+    block.write_text(compose(json.dumps(receipt, separators=(",", ":")), signature))
+    _expect(block, allowed, head, "E_UNKNOWN_FIELD")
