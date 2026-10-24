@@ -1,0 +1,128 @@
+name: evidence test
+
+# One-off check that the verifier accepts the same archive from a URL and from
+# a local file. The gist holds the deterministic archive made from run.log.
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/evidence-test.yml"
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  operator:
+    runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.sign.outputs.commit }}
+      receipt: ${{ steps.sign.outputs.receipt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install .
+      - id: sign
+        env:
+          KEY: ${{ secrets.OOB_SELFTEST_KEY || secrets.OUTBOARD_SELFTEST_KEY }}
+          COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          umask 077
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/key"
+          chmod 600 "$RUNNER_TEMP/key"
+          mkdir -p "$RUNNER_TEMP/evidence"
+          printf 'self-test evidence\n' > "$RUNNER_TEMP/evidence/run.log"
+          oob sign --job evidence-test --commit "$COMMIT" --result pass \
+            --evidence-dir "$RUNNER_TEMP/evidence" --key "$RUNNER_TEMP/key" \
+            --repo "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/receipt.md"
+          {
+            echo "commit=$COMMIT"
+            echo "receipt<<__OB__"
+            cat "$RUNNER_TEMP/receipt.md"
+            echo "__OB__"
+          } >> "$GITHUB_OUTPUT"
+
+  via-url:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: evidence-test
+          check-name: evidence-via-url
+          receipt: ${{ needs.operator.outputs.receipt }}
+          allowed-signers: .github/selftest_allowed_signers
+          evidence-url: "https://gist.githubusercontent.com/Oaklight/610187df26e62e140bafcd4cb5c26d8d/raw/evidence.tgz"
+          source: .
+      - name: Show the evidence summary
+        if: always()
+        run: tail -40 "$GITHUB_STEP_SUMMARY"
+
+  via-file:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install .
+      - name: Pack the same evidence
+        run: |
+          mkdir -p "$RUNNER_TEMP/evidence"
+          printf 'self-test evidence\n' > "$RUNNER_TEMP/evidence/run.log"
+          oob pack --evidence-dir "$RUNNER_TEMP/evidence" --out "$RUNNER_TEMP/evidence.tgz"
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: evidence-test
+          check-name: evidence-via-file
+          receipt: ${{ needs.operator.outputs.receipt }}
+          allowed-signers: .github/selftest_allowed_signers
+          evidence-file: ${{ runner.temp }}/evidence.tgz
+          source: .
+      - name: Show the evidence summary
+        if: always()
+        run: tail -40 "$GITHUB_STEP_SUMMARY"
+
+  assert:
+    needs: [via-url, via-file]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Both cases must verify
+        env:
+          URL: ${{ needs.via-url.outputs.verdict }}
+          FILE: ${{ needs.via-file.outputs.verdict }}
+        run: |
+          test "$URL" = verified
+          test "$FILE" = verified
+          echo "url=$URL file=$FILE"
