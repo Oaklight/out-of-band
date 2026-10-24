@@ -226,3 +226,20 @@ def test_collect_skips_unparseable_blocks_when_a_commit_is_expected(
 
     assert workflow.collect() == 0
     assert "found=true" in output.read_text()
+
+
+def test_collect_reports_the_parse_error_when_every_block_is_malformed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = _collect_env(tmp_path, monkeypatch, "a" * 40)
+    broken = {
+        "body": '<!-- receipt:v1 -->\n```json\n{"schema":"receipt/v1"}\n```\n',
+        "author_association": "OWNER",
+        "user": {"login": "operator"},
+    }
+    monkeypatch.setattr(workflow, "_comments", lambda repo, pr: [broken])
+
+    assert workflow.collect() == 0
+    text = output.read_text()
+    assert "found=false" in text
+    assert "code=E_BAD_FENCE" in text

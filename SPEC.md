@@ -415,7 +415,8 @@ credential.
   one. A receipt for an earlier head is not evidence about this one: ignoring
   it lets an operator post a fresh receipt without deleting the previous one.
 - If trusted markers exist but none names the expected commit, the receipt is
-  absent with `E_WRONG_COMMIT`.
+  absent with `E_WRONG_COMMIT`. If none of them can be parsed at all, the
+  receipt is invalid with the parse error instead.
 - Blocks for the expected commit that disagree with each other are
   `E_MULTI_BLOCK`. Byte-identical blocks count as one.
 - Review comments and review bodies are not scanned. Only issue comments.

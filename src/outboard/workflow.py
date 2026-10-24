@@ -136,19 +136,23 @@ def collect() -> int:
         _set_output(found="true", code="", source="comments")
         return 0
 
-    blocks: list[tuple[bytes, str, str]] = []
+    parsed: list[tuple[bytes, str, str]] = []
+    first_error: OutboardError | None = None
     for body in bodies:
         try:
             payload, signature = extract(body)
-        except OutboardError:
+        except OutboardError as exc:
+            first_error = first_error or exc
             continue
-        blocks.append((payload, signature, body))
+        parsed.append((payload, signature, body))
 
-    blocks = [block for block in blocks if _commit_of(block[0]) == expected]
+    blocks = [block for block in parsed if _commit_of(block[0]) == expected]
     if not blocks:
-        # Every trusted block names some other commit. A receipt for a
-        # previous head is not evidence about this one.
-        _set_output(found="false", code="E_WRONG_COMMIT", source="comments")
+        # Trusted markers with nothing parseable at all are malformed, not
+        # evidence about another commit; report the parse error so the author
+        # can fix the block. Otherwise every block names some other commit.
+        code = first_error.code if not parsed and first_error is not None else "E_WRONG_COMMIT"
+        _set_output(found="false", code=code, source="comments")
         return 0
 
     if len({(payload, signature) for payload, signature, _ in blocks}) > 1:
