@@ -237,9 +237,9 @@ as data. The `policy` job resolves the head through the API so a comment on an
 issue does not fall back to `github.sha`, which is the base branch.
 
 Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
-`allowed-signers`, `trusted-authors`, `evidence-url`. Output: `verdict`. The
-action takes the same inputs plus `version`, `source`, `python-version`, and
-`token`.
+`allowed-signers`, `trusted-authors`, `evidence-url`, `report`. Output:
+`verdict`. The action takes the same inputs plus `version`, `source`,
+`python-version`, and `token`.
 
 Pin `uses:` by full commit SHA and keep the version in a comment
 (`# v0.4.1`); Dependabot can open the bump PR. A tag can be moved.

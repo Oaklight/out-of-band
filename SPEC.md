@@ -396,6 +396,7 @@ Everything below applies to both unless a rule names one carrier.
 | `allowed-signers` | string | `.github/allowed_signers` | path in the caller repository, read from the default branch |
 | `trusted-authors` | string | `""` | comma-separated logins allowed to supply a receipt. Empty means comments whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` |
 | `evidence-url` | string | `""` | HTTPS URL of a `.tar.gz` evidence bundle. Empty means digest only |
+| `report` | boolean | `true` | publish a check run and sticky comment; `false` computes the verdict only |
 
 The action takes the same inputs as strings, plus `version`, `source`,
 `python-version`, and `token`. Its `required` input is the string `true` or
@@ -498,6 +499,11 @@ Every `unverified` outcome uses the `failure` conclusion, so a required check is
 red as soon as the PR opens. The title and summary still say `unverified` and
 carry the error code, which keeps "not submitted" distinct from "ran and
 failed" without a third conclusion.
+
+When `report` is false, the verifier computes the verdict and writes the step
+summary and outputs, but creates no check run and no sticky comment. The
+in-repo self-test uses this for negative cases, so a pull request's checks stay
+green while the verdicts are still asserted.
 
 ### 6.6 Check run
 

@@ -39,6 +39,10 @@ on:
         description: HTTPS URL of a .tar.gz evidence bundle; empty means digest only
         type: string
         default: ""
+      report:
+        description: Publish a check run; false computes the verdict without one
+        type: boolean
+        default: true
     outputs:
       verdict:
         description: verified, failed, unverified, or not applicable
@@ -155,4 +159,5 @@ jobs:
           JOB: ${{ inputs.job }}
           PR: ${{ inputs.pr }}
           CHECK_NAME: ${{ inputs.check-name }}
+          REPORT: ${{ inputs.report }}
         run: python -m oob.workflow publish

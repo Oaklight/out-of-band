@@ -15,8 +15,9 @@ permissions:
   checks: write
   pull-requests: write
 
-# Check names are "oob-selftest/<case>" and "oob-action/<case>". A negative case
-# ends with "(expected)": the red check run is the assertion, not a failed test.
+# Check names are "oob-selftest/<case>" and "oob-action/<case>". Negative cases
+# set report: false, so the verdict is asserted without publishing a check and a
+# pull request's checks stay green.
 
 jobs:
   operator:
@@ -105,6 +106,7 @@ jobs:
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
       check-name: oob-selftest/fail (expected)
+      report: false
       receipt: ${{ needs.operator.outputs.failing }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -120,6 +122,7 @@ jobs:
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
       check-name: oob-selftest/altered (expected)
+      report: false
       receipt: ${{ needs.operator.outputs.altered }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -135,6 +138,7 @@ jobs:
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest
       check-name: oob-selftest/stranger (expected)
+      report: false
       receipt: ${{ needs.operator.outputs.stranger }}
       allowed-signers: .github/selftest_allowed_signers
 
@@ -223,6 +227,7 @@ jobs:
       commit: ${{ needs.operator.outputs.commit }}
       job: selftest-missing
       check-name: oob-selftest/missing job (expected)
+      report: false
       allowed-signers: .github/selftest_allowed_signers
       trusted-authors: "github-actions[bot]"
 
@@ -270,6 +275,7 @@ jobs:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
           check-name: oob-action/fail (expected)
+          report: "false"
           receipt: ${{ needs.operator.outputs.failing }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -294,6 +300,7 @@ jobs:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
           check-name: oob-action/altered (expected)
+          report: "false"
           receipt: ${{ needs.operator.outputs.altered }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -318,6 +325,7 @@ jobs:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest
           check-name: oob-action/stranger (expected)
+          report: "false"
           receipt: ${{ needs.operator.outputs.stranger }}
           allowed-signers: .github/selftest_allowed_signers
           source: .
@@ -421,6 +429,7 @@ jobs:
           commit: ${{ needs.operator.outputs.commit }}
           job: selftest-missing
           check-name: oob-action/missing job (expected)
+          report: "false"
           allowed-signers: .github/selftest_allowed_signers
           trusted-authors: "github-actions[bot]"
           source: .

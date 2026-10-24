@@ -277,6 +277,7 @@ def _decide() -> tuple[str, str, str, bool]:
 
 def publish() -> int:
     state, code, conclusion, verified = _decide()
+    report = (os.environ.get("REPORT") or "true").lower() != "false"
     repo = os.environ["GITHUB_REPOSITORY"]
     commit = os.environ["COMMIT"]
     job = os.environ["JOB"]
@@ -289,55 +290,65 @@ def publish() -> int:
     evidence_label = {"ok": "uploaded", "invalid": "invalid"}.get(evidence_status, "digest only")
     summary = _summary(state, code, job, commit, source, claims, evidence_label)
 
-    payload = {
-        "name": check_name,
-        "head_sha": commit,
-        "status": "completed",
-        "conclusion": conclusion,
-        "output": {
-            "title": f"oob: {state}",
-            "summary": summary,
-            "text": output_block,
-        },
-    }
-    _gh("api", "-X", "POST", f"repos/{repo}/check-runs", "--input", "-", stdin=json.dumps(payload))
+    if report:
+        payload = {
+            "name": check_name,
+            "head_sha": commit,
+            "status": "completed",
+            "conclusion": conclusion,
+            "output": {
+                "title": f"oob: {state}",
+                "summary": summary,
+                "text": output_block,
+            },
+        }
+        _gh(
+            "api",
+            "-X",
+            "POST",
+            f"repos/{repo}/check-runs",
+            "--input",
+            "-",
+            stdin=json.dumps(payload),
+        )
 
     summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_file:
         with open(summary_file, "a", encoding="utf-8") as handle:
             handle.write(summary + "\n")
 
-    pr = (os.environ.get("PR") or "0").strip()
-    if pr.isdigit() and int(pr) > 0:
-        login = BOT_LOGIN
-        comments = _comments(repo, pr)
-        existing = [
-            comment
-            for comment in comments
-            if STATE_MARKER in (comment.get("body") or "")
-            and (comment.get("user") or {}).get("login") == login
-        ]
-        body = f"{STATE_MARKER}\n{summary}\n{output_block}"
-        if existing:
-            _gh(
-                "api",
-                "-X",
-                "PATCH",
-                f"repos/{repo}/issues/comments/{existing[-1]['id']}",
-                "--input",
-                "-",
-                stdin=json.dumps({"body": body}),
-            )
-        else:
-            _gh(
-                "api",
-                "-X",
-                "POST",
-                f"repos/{repo}/issues/{pr}/comments",
-                "--input",
-                "-",
-                stdin=json.dumps({"body": body}),
-            )
+    if report:
+        pr = (os.environ.get("PR") or "0").strip()
+        if pr.isdigit() and int(pr) > 0:
+            login = BOT_LOGIN
+            comments = _comments(repo, pr)
+            existing = [
+                comment
+                for comment in comments
+                if STATE_MARKER in (comment.get("body") or "")
+                and (comment.get("user") or {}).get("login") == login
+            ]
+            body = f"{STATE_MARKER}\n{summary}\n{output_block}"
+            if existing:
+                _gh(
+                    "api",
+                    "-X",
+                    "PATCH",
+                    f"repos/{repo}/issues/comments/{existing[-1]['id']}",
+                    "--input",
+                    "-",
+                    stdin=json.dumps({"body": body}),
+                )
+            else:
+                _gh(
+                    "api",
+                    "-X",
+                    "POST",
+                    f"repos/{repo}/issues/{pr}/comments",
+                    "--input",
+                    "-",
+                    stdin=json.dumps({"body": body}),
+                )
 
     _set_output(verdict=state)
     return 0
