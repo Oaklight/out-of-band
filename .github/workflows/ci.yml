@@ -49,7 +49,7 @@ jobs:
           git config --global user.email ci@example.com
           git config --global user.name ci
           work=$(mktemp -d)
-          git -C "$work/repo" init -q
+          git init -q "$work/repo"
           echo hi > "$work/repo/f.txt"
           git -C "$work/repo" add f.txt
           git -C "$work/repo" commit -qm init
