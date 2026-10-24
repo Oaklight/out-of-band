@@ -20,6 +20,7 @@ Prefer a visual walkthrough? [Take the guided tour](https://oaklight.github.io/o
 | Sign on a host with no outbound network | [Air-gapped hosts](offline.md) |
 | Generate, rotate, or debug keys | [Operations](operations.md) |
 | See the evidence from the self-test runs | [Validation](validation.md) |
+| How this compares to Sigstore, attestations, and prior art | [Prior art](prior-art.md) |
 
 ## The shape they share
 

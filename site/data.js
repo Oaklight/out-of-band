@@ -75,6 +75,10 @@ const UI = {
         a: "Anyone can upload anything, and a link proves nothing about the commit. Evidence upload is optional here; when it is used, the bundle is re-hashed against the signed digest before it is kept.",
       },
       {
+        q: "…use Sigstore or GitHub's artifact attestations?",
+        a: "Use them when the job runs in Actions: the workflow's OIDC identity is what signs. A machine outside Actions has no such identity, and keyless signing needs Fulcio and Rekor. Sigstore can sign a blob offline with a key, but the GitHub-side gate — who may sign, for which commit, over what evidence — is still yours to build. That gate is what outboard is.",
+      },
+      {
         q: "…use Jenkins?",
         a: "Fine if you have it and it can reach GitHub. It still needs a credential and a network path, and its result is a status like any other. Outboard covers the case where neither is available.",
       },
@@ -184,6 +188,10 @@ const UI = {
       {
         q: "……把日志传到某个地方，贴个链接？",
         a: "谁都能上传任何东西，一个链接也证明不了它和 commit 的关系。这里的证据上传是可选的；用了的话，会按签名 digest 重新校验，对不上就不保留。",
+      },
+      {
+        q: "……用 Sigstore 或 GitHub 的 artifact attestation？",
+        a: "任务在 Actions 里跑，就用它们：签名用的是 workflow 的 OIDC 身份。Actions 之外的机器没有这个身份，keyless 签名还要连 Fulcio 和 Rekor。Sigstore 可以用密钥离线签一个 blob，但 GitHub 这一侧的门禁——谁能签、签哪个 commit、覆盖哪份证据——还是得自己搭。outboard 就是这道门。",
       },
       {
         q: "……用 Jenkins？",
