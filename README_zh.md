@@ -97,6 +97,14 @@ oob sign \
 
 输出就是回执：一个 HTML 标记、一行 JSON、一段 SSH 签名。贴成 PR 评论，或者通过 `workflow_dispatch` 传进去。
 
+要贴成可读的评论，先渲染：
+
+```bash
+oob render --block receipt.md
+```
+
+输出一张 Markdown 表格，把原始签名块放进默认折叠的 `<details>` 里。验证方只读块，不读表格。
+
 发出去之前先本地验一遍：
 
 ```bash
@@ -204,20 +212,30 @@ jobs:
 
 这里用 `pull_request_target` 而不是 `pull_request`：它跑默认分支上的那份 workflow，PR 改不了审判自己的门。它拿着写权限，fork PR 也一样，所以这个 workflow 里不要 checkout、不要执行 PR 代码。验证器只从默认分支读 `allowed_signers`，并把回执当数据。`policy` 通过 API 解析 head，这样评论触发的运行不会退回成 `github.sha`（那是基分支）。
 
-输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`、`evidence-url`、`report`；输出：`verdict`。action 还多 `version`、`source`、`python-version`、`token` 四个输入。
+输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`、`evidence-url`、`report`、`require-evidence`；输出：`verdict`。action 还多 `version`、`source`、`python-version`、`token` 四个输入。
 
 `uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.4.1`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
 
-### 上传证据
+### 证据
 
-`evidence-url` 留空就维持现状：回执只绑定摘要，不上传任何东西。
-
-把它设成 `oob pack` 生成的包的 HTTPS 地址，workflow 会下载、安全解包、
-重算摘要并比对，一致才作为 `oob-evidence` artifact 上传；对不上则判为
-unverified。
+默认必须提交证据。先用 `oob pack` 打包，把包放到 runner 能通过 HTTPS 取到的位置，再把地址签进 claims：
 
 ```bash
 oob pack --evidence-dir ./evidence --out evidence.tgz
+# 上传 evidence.tgz 到短期存储，然后
+oob sign ... --claims evidence_url="https://host/evidence.tgz"
+```
+
+地址在签名覆盖范围内，所以一条评论就够了；`evidence-url` 输入可以覆盖它。`require-evidence: false` 恢复只签摘要的模式。
+
+runner 下载、安全解包、重算摘要并比对。没有地址是 `E_NO_EVIDENCE`，对不上是 `E_EVIDENCE_MISMATCH`。一致就作为 `oob-evidence` artifact 上传，并在 run summary 里列出清单和有限的文本预览。GitHub token 只发给 `api.github.com` 和 `github.com`，其他主机必须是公开或自带签名的 URL。
+
+不需要注册的短期存储可以用 `litterbox.catbox.moe`，1 GB，保留 1、12、24 或 72 小时：
+
+```bash
+curl -s -F "reqtype=fileupload" -F "time=24h" \
+  -F "fileToUpload=@evidence.tgz" \
+  https://litterbox.catbox.moe/resources/internals/api.php
 ```
 
 ### 回执从哪来

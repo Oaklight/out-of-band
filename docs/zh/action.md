@@ -36,6 +36,7 @@
 | `trusted-authors` | 空 | 允许提交回执的登录名，逗号分隔 |
 | `evidence-url` | 空 | 证据 `.tar.gz` 的 HTTPS 地址 |
 | `report` | `true` | 发布 check run 和 sticky 评论；`false` 只计算结论 |
+| `require-evidence` | `true` | 必须有匹配的证据包；`false` 允许只签摘要 |
 | `version` | `0.4.0` | 安装的 out-of-band 版本；留空则不装 |
 | `source` | 空 | 改为从本地路径安装，供开发和自测使用 |
 | `python-version` | `3.12` | 验证器使用的 Python |

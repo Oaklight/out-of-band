@@ -42,6 +42,7 @@ it:
 | `trusted-authors` | empty | comma-separated logins allowed to supply a receipt |
 | `evidence-url` | empty | HTTPS URL of an evidence `.tar.gz` |
 | `report` | `true` | publish the check run and sticky comment; `false` computes the verdict only |
+| `require-evidence` | `true` | require a matching evidence archive; `false` allows digest only |
 | `version` | `0.4.0` | out-of-band version to install; empty installs nothing |
 | `source` | empty | local path to install instead; for development and the self-test |
 | `python-version` | `3.12` | Python used by the verifier |

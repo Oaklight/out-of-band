@@ -101,6 +101,7 @@ def test_decide(
     monkeypatch.setenv("FOUND", found)
     monkeypatch.setenv("VERIFY_EXIT", verify_exit)
     monkeypatch.setenv("RESOLVE_CODE", "")
+    monkeypatch.setenv("REQUIRE_EVIDENCE", "false")
     if verdict is not None:
         (tmp_path / "verdict.json").write_text(json.dumps(verdict))
     assert workflow._decide() == expected
@@ -131,6 +132,7 @@ def test_publish_creates_a_check_run(tmp_path: Path, monkeypatch: pytest.MonkeyP
     monkeypatch.setenv("REQUIRED", "true")
     monkeypatch.setenv("FOUND", "true")
     monkeypatch.setenv("VERIFY_EXIT", "0")
+    monkeypatch.setenv("REQUIRE_EVIDENCE", "false")
     monkeypatch.setenv("COMMIT", "a" * 40)
     monkeypatch.setenv("JOB", "smoke")
     monkeypatch.setenv("CHECK_NAME", "gate")
@@ -288,6 +290,7 @@ def test_publish_carries_the_signed_output(tmp_path: Path, monkeypatch: pytest.M
     monkeypatch.setenv("REQUIRED", "true")
     monkeypatch.setenv("FOUND", "true")
     monkeypatch.setenv("VERIFY_EXIT", "0")
+    monkeypatch.setenv("REQUIRE_EVIDENCE", "false")
     monkeypatch.setenv("COMMIT", "a" * 40)
     monkeypatch.setenv("JOB", "smoke")
     monkeypatch.setenv("CHECK_NAME", "gate")
@@ -423,3 +426,59 @@ def test_publish_can_compute_a_verdict_without_reporting(
     assert calls == []
     assert "verdict=unverified" in (tmp_path / "out").read_text()
     assert "unverified" in (tmp_path / "summary").read_text()
+
+
+def test_decide_requires_evidence(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
+    monkeypatch.setenv("REQUIRED", "true")
+    monkeypatch.setenv("FOUND", "true")
+    monkeypatch.setenv("VERIFY_EXIT", "0")
+    monkeypatch.setenv("REQUIRE_EVIDENCE", "true")
+    (tmp_path / "verdict.json").write_text('{"code":"OK"}')
+
+    assert workflow._decide() == ("unverified", "E_NO_EVIDENCE", "failure", False)
+    monkeypatch.setenv("EVIDENCE_STATUS", "missing")
+    assert workflow._decide() == ("unverified", "E_NO_EVIDENCE", "failure", False)
+    monkeypatch.setenv("EVIDENCE_STATUS", "ok")
+    assert workflow._decide() == ("verified", "OK", "success", True)
+
+
+def test_evidence_url_comes_from_the_signed_claims(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    payload = json.dumps(
+        {
+            "schema": "receipt/v2",
+            "claims": {"evidence_url": "https://example.com/e.tgz"},
+        },
+        separators=(",", ":"),
+    )
+    block = f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\nAAA\n```\n"
+    path = tmp_path / "receipt.md"
+    path.write_text(block, encoding="utf-8")
+
+    assert workflow.evidence_url_from_receipt(str(path)) == 0
+    assert capsys.readouterr().out.strip() == "https://example.com/e.tgz"
+
+
+def test_evidence_url_is_absent_without_the_claim(tmp_path: Path) -> None:
+    payload = json.dumps({"schema": "receipt/v2", "claims": {}}, separators=(",", ":"))
+    block = f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\nAAA\n```\n"
+    path = tmp_path / "receipt.md"
+    path.write_text(block, encoding="utf-8")
+
+    assert workflow.evidence_url_from_receipt(str(path)) == 1
+
+
+def test_evidence_markdown_lists_files_and_previews_text(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "run.log").write_text("ok\n", encoding="utf-8")
+    (tmp_path / "result.bin").write_bytes(b"\x00\x01")
+
+    assert workflow.evidence_markdown(str(tmp_path)) == 0
+    out = capsys.readouterr().out
+    assert "| <code>run.log</code>" in out
+    assert "<pre>ok" in out
+    assert "| <code>result.bin</code>" in out
+    assert "result.bin" in out

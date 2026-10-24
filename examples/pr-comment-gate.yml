@@ -1,3 +1,5 @@
+# Evidence is required by default: the receipt must carry claims.evidence_url,
+# or the caller must pass evidence-url.
 # Gate a pull request on a receipt the operator submits as a comment.
 #
 # Pull requests and comments both trigger this workflow. The first run has no

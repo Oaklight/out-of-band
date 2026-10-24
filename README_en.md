@@ -116,6 +116,16 @@ oob sign \
 That prints one block: an HTML marker, one line of JSON, and an SSH signature.
 Post it as a PR comment, or hand it to a `workflow_dispatch` input.
 
+For a readable comment, render the block first:
+
+```bash
+oob render --block receipt.md
+```
+
+That prints a Markdown table plus the exact signed block inside a collapsed
+`<details>`. The signature is folded by default; a verifier ignores the table
+and reads only the block.
+
 `--output-file` is optional. It embeds up to 4 KiB of what the check printed
 into the signed receipt (schema `receipt/v2`), and the check page shows it
 folded under the summary. Without it the receipt stays `receipt/v1`.
@@ -237,24 +247,41 @@ as data. The `policy` job resolves the head through the API so a comment on an
 issue does not fall back to `github.sha`, which is the base branch.
 
 Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
-`allowed-signers`, `trusted-authors`, `evidence-url`, `report`. Output:
-`verdict`. The action takes the same inputs plus `version`, `source`,
-`python-version`, and `token`.
+`allowed-signers`, `trusted-authors`, `evidence-url`, `report`,
+`require-evidence`. Output: `verdict`. The action takes the same inputs plus
+`version`, `source`, `python-version`, and `token`.
 
 Pin `uses:` by full commit SHA and keep the version in a comment
 (`# v0.4.1`); Dependabot can open the bump PR. A tag can be moved.
 
-### Uploading evidence
+### Evidence
 
-Empty `evidence-url` keeps the current behaviour: the receipt commits to a
-digest and nothing is uploaded.
-
-Set it to an HTTPS URL of a bundle made with `oob pack`, and the workflow
-downloads it, extracts it safely, recomputes the digest, and uploads it as the
-`oob-evidence` artifact. A mismatch makes the check unverified.
+Evidence is required by default. Pack the directory, put the archive somewhere
+the runner can fetch over HTTPS, and sign its location as a claim:
 
 ```bash
 oob pack --evidence-dir ./evidence --out evidence.tgz
+# upload evidence.tgz to a short-lived host, then
+oob sign ... --claims evidence_url="https://host/evidence.tgz"
+```
+
+The claim is signed, so a comment is self-contained. The `evidence-url` input
+overrides it. `require-evidence: false` restores digest-only runs.
+
+The runner downloads the archive, extracts it safely, recomputes the digest,
+and compares it with the signed one. A missing URL is `E_NO_EVIDENCE`; a
+mismatch is `E_EVIDENCE_MISMATCH`. A matching bundle is uploaded as the
+`oob-evidence` artifact, and the run summary shows a manifest plus bounded text
+previews. The GitHub token is sent only to `api.github.com` and `github.com`;
+other hosts must serve a public or signed URL.
+
+For a short-lived host with no account, `litterbox.catbox.moe` accepts a 1 GB
+file for 1, 12, 24, or 72 hours:
+
+```bash
+curl -s -F "reqtype=fileupload" -F "time=24h" \
+  -F "fileToUpload=@evidence.tgz" \
+  https://litterbox.catbox.moe/resources/internals/api.php
 ```
 
 ### Receipt collection
