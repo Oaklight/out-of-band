@@ -64,7 +64,7 @@ scp oob-0.4.0.pyz host:
 ssh host python3 oob-0.4.0.pyz --version
 ```
 
-它的用法和装好的命令一样，下面所有例子都能把 `oob` 换成 `python3 oob-0.4.0.pyz`。
+它的用法和装好的命令一样，下面所有例子都能把 `oob` 换成 `python3 oob-0.4.0.pyz`。直接执行 `./oob-0.4.0.pyz` 时，里面的 POSIX 启动脚本会挑第一个 Python 3.11+；一个都没有就明确报错，不会抛出一句看不懂的语法错误。Windows 没有 shebang，用 `python oob-0.4.0.pyz`。
 
 如果站点更习惯正常安装，wheel 是纯 Python（`py3-none-any`），任何 3.11+ 解释器都能用。在能上网的机器上：
 

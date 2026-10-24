@@ -44,6 +44,7 @@ jobs:
           python-version: "3.12"
       - run: python scripts/build_zipapp.py
       - run: python dist/oob.pyz --version
+      - run: ./dist/oob.pyz --version
       - name: sign and verify with the archive alone
         run: |
           git config --global user.email ci@example.com
