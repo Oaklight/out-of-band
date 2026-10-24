@@ -69,6 +69,22 @@ def _is_trusted(comment: dict[str, Any], trusted: list[str]) -> bool:
     return comment.get("author_association") in {"OWNER", "MEMBER", "COLLABORATOR"}
 
 
+def _commit_of(payload: bytes) -> str | None:
+    """The commit a block claims, read without trusting it.
+
+    This narrows the candidate set before signature verification. A forged
+    claim can hide a block from itself; it cannot authenticate one.
+    """
+    try:
+        value = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if not isinstance(value, dict):
+        return None
+    commit = value.get("commit")
+    return commit.lower() if isinstance(commit, str) else None
+
+
 def collect() -> int:
     temp = Path(os.environ["RUNNER_TEMP"])
     receipt = (os.environ.get("RECEIPT") or "").strip()
@@ -99,20 +115,47 @@ def collect() -> int:
         _set_output(found="false", code="", source="comments")
         return 0
 
-    if len(bodies) > 1:
-        blocks = set()
-        for body in bodies:
-            try:
-                payload, signature = extract(body)
-            except OutboardError:
+    expected = (os.environ.get("COMMIT") or "").strip().lower()
+    if not expected:
+        # No commit to filter on. Keep the previous behaviour for callers that
+        # invoke collect() directly: a single body is passed through and the
+        # verifier decides.
+        if len(bodies) > 1:
+            seen = set()
+            for body in bodies:
+                try:
+                    payload, signature = extract(body)
+                except OutboardError:
+                    _set_output(found="false", code="E_MULTI_BLOCK", source="comments")
+                    return 0
+                seen.add((payload, signature))
+            if len(seen) > 1:
                 _set_output(found="false", code="E_MULTI_BLOCK", source="comments")
                 return 0
-            blocks.add((payload, signature))
-        if len(blocks) > 1:
-            _set_output(found="false", code="E_MULTI_BLOCK", source="comments")
-            return 0
+        (temp / "receipt.md").write_text(bodies[0], encoding="utf-8")
+        _set_output(found="true", code="", source="comments")
+        return 0
 
-    (temp / "receipt.md").write_text(bodies[0], encoding="utf-8")
+    blocks: list[tuple[bytes, str, str]] = []
+    for body in bodies:
+        try:
+            payload, signature = extract(body)
+        except OutboardError:
+            continue
+        blocks.append((payload, signature, body))
+
+    blocks = [block for block in blocks if _commit_of(block[0]) == expected]
+    if not blocks:
+        # Every trusted block names some other commit. A receipt for a
+        # previous head is not evidence about this one.
+        _set_output(found="false", code="E_WRONG_COMMIT", source="comments")
+        return 0
+
+    if len({(payload, signature) for payload, signature, _ in blocks}) > 1:
+        _set_output(found="false", code="E_MULTI_BLOCK", source="comments")
+        return 0
+
+    (temp / "receipt.md").write_text(blocks[0][2], encoding="utf-8")
     _set_output(found="true", code="", source="comments")
     return 0
 

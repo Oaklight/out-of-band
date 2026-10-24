@@ -153,7 +153,8 @@ jobs:
 
 - 传了 `receipt` 输入就用它，适合 `workflow_dispatch`。
 - 否则读 PR 的 issue 评论，只认可信作者：配了 `trusted-authors` 就按名单，没配就只认 `OWNER`、`MEMBER`、`COLLABORATOR`。不可信评论里的标记直接忽略，陌生人贴一条也卡不住门禁。
-- 字节完全一致的块算同一条，对不上的报 `E_MULTI_BLOCK`。
+- 指向旧提交的块会被忽略，重跑时可以直接贴新回执，不必先删掉旧的那条。只有指向期望提交的块才算候选。
+- 字节完全一致的块算同一条；同一提交的块互相对不上才报 `E_MULTI_BLOCK`。
 
 ### 触发方式和 fork
 

@@ -176,8 +176,11 @@ Pin `uses:` by commit SHA. A tag is mutable.
   from trusted authors: `trusted-authors` if set, else `OWNER`, `MEMBER`, or
   `COLLABORATOR`. Untrusted markers are ignored, so a stranger cannot stall the
   gate by posting one.
-- Byte-identical blocks are accepted as one; blocks that disagree are
-  `E_MULTI_BLOCK`.
+- Blocks naming an older commit are ignored, so a re-run can post a fresh
+  receipt without deleting the previous one. Only an expected-commit block is
+  a candidate at all.
+- Byte-identical blocks are accepted as one; blocks for the expected commit
+  that disagree are `E_MULTI_BLOCK`.
 
 ### Triggers and forks
 

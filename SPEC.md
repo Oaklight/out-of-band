@@ -409,6 +409,15 @@ credential.
 
   Untrusted comments are ignored whether or not they carry a marker, so anyone
   can post one without changing the verdict.
+- Among trusted markers, only blocks whose `commit` equals the input `commit`
+  are candidates. The field is read from the payload without trusting it, so a
+  forged claim can hide a block from the candidate set but never authenticate
+  one. A receipt for an earlier head is not evidence about this one: ignoring
+  it lets an operator post a fresh receipt without deleting the previous one.
+- If trusted markers exist but none names the expected commit, the receipt is
+  absent with `E_WRONG_COMMIT`.
+- Blocks for the expected commit that disagree with each other are
+  `E_MULTI_BLOCK`. Byte-identical blocks count as one.
 - Review comments and review bodies are not scanned. Only issue comments.
 - Scanning stops at 5000 comments. Beyond that, exit 3 with
   `E_TOO_MANY_COMMENTS` instead of guessing.

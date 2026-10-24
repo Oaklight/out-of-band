@@ -83,6 +83,7 @@ jobs:
           PR: ${{ inputs.pr }}
           RECEIPT: ${{ inputs.receipt }}
           TRUSTED: ${{ inputs.trusted-authors }}
+          COMMIT: ${{ inputs.commit }}
         run: python -m outboard.workflow collect
 
       - name: Verify receipt
