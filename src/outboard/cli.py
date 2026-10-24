@@ -11,6 +11,7 @@ from pathlib import Path
 
 from . import __version__
 from .errors import EXIT_ERROR, OutboardError
+from .evidence import pack_directory
 from .sign import sign
 from .verify import verify
 
@@ -50,6 +51,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="curated check output to carry in the receipt (v2, at most 4 KiB)",
     )
     sign_parser.add_argument("--out", type=Path, help="write the block here instead of stdout")
+
+    pack_parser = sub.add_parser("pack", help="package an evidence directory")
+    pack_parser.add_argument("--evidence-dir", required=True)
+    pack_parser.add_argument("--out", required=True, type=Path)
+    pack_parser.add_argument("--json", action="store_true")
 
     verify_parser = sub.add_parser("verify", help="verify a receipt block")
     verify_parser.add_argument("--block", required=True, help="file holding the comment or block")
@@ -120,6 +126,13 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"wrote {args.out}", file=sys.stderr)
             else:
                 sys.stdout.write(block)
+            return 0
+        if args.command == "pack":
+            count, digest = pack_directory(args.evidence_dir, args.out)
+            if args.json:
+                print(json.dumps({"count": count, "digest": digest}, separators=(",", ":")))
+            else:
+                print(f"{count} files  {digest}")
             return 0
         if args.command == "verify":
             return _verify_command(args)

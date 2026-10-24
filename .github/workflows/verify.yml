@@ -35,6 +35,10 @@ on:
         description: Comma-separated logins allowed to supply a receipt
         type: string
         default: ""
+      evidence-url:
+        description: HTTPS URL of a .tar.gz evidence bundle; empty means digest only
+        type: string
+        default: ""
     outputs:
       verdict:
         description: verified, failed, unverified, or not applicable
@@ -105,6 +109,38 @@ jobs:
           echo "exit=$?" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Fetch and check evidence
+        id: evidence
+        if: ${{ inputs.required && steps.resolve.outputs.found == 'true' && inputs.evidence-url != '' && (steps.verify.outputs.exit == '0' || steps.verify.outputs.exit == '1') }}
+        env:
+          URL: ${{ inputs.evidence-url }}
+        run: |
+          set +e
+          curl -fsSL --max-time 120 --max-filesize 52428800 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -o "$RUNNER_TEMP/evidence.tgz" "$URL"
+          if [ $? -ne 0 ]; then
+            echo "status=invalid" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python -m outboard.workflow evidence \
+            --receipt "$RUNNER_TEMP/receipt.md" \
+            --archive "$RUNNER_TEMP/evidence.tgz" \
+            --out "$RUNNER_TEMP/evidence"
+          if [ $? -eq 0 ]; then
+            echo "status=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=invalid" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
+
+      - name: Upload evidence
+        if: ${{ steps.evidence.outputs.status == 'ok' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: outboard-evidence
+          path: ${{ runner.temp }}/evidence
+
       - name: Publish result
         id: publish
         env:
@@ -113,6 +149,7 @@ jobs:
           RESOLVE_CODE: ${{ steps.resolve.outputs.code }}
           SOURCE: ${{ steps.resolve.outputs.source }}
           VERIFY_EXIT: ${{ steps.verify.outputs.exit }}
+          EVIDENCE_STATUS: ${{ steps.evidence.outputs.status }}
           COMMIT: ${{ inputs.commit }}
           JOB: ${{ inputs.job }}
           PR: ${{ inputs.pr }}

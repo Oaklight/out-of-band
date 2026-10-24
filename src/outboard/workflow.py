@@ -7,18 +7,24 @@ App identity, so publishing stays in the workflow (SPEC.md §5.3).
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
 import os
+import shutil
 import subprocess
 import sys
-from pathlib import Path
+import tarfile
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .block import MARKER, extract
 from .errors import EXIT_ERROR, OutboardError
+from .evidence import digest_directory
 
 MAX_COMMENTS = 5000
+MAX_EVIDENCE_BYTES = 50 * 1024 * 1024
+MAX_EVIDENCE_FILES = 1000
 # Installation tokens cannot call GET /user; in Actions the comment author is
 # always the Actions app bot.
 BOT_LOGIN = "github-actions[bot]"
@@ -200,7 +206,9 @@ def _clean(value: str) -> str:
     return "".join(ch for ch in value if ch.isprintable() and ch not in "`\r\n")[:200]
 
 
-def _summary(state: str, code: str, job: str, commit: str, source: str, claims: str) -> str:
+def _summary(
+    state: str, code: str, job: str, commit: str, source: str, claims: str, evidence: str
+) -> str:
     text = (
         f"### outboard: {_clean(state)}\n\n"
         "```text\n"
@@ -209,6 +217,7 @@ def _summary(state: str, code: str, job: str, commit: str, source: str, claims: 
         f"state: {_clean(state)}\n"
         f"code: {_clean(code)}\n"
         f"source: {_clean(source)}\n"
+        f"evidence: {_clean(evidence)}\n"
         "```\n"
     )
     if claims:
@@ -223,6 +232,8 @@ def _decide() -> tuple[str, str, str, bool]:
 
     if not required:
         return "not applicable", "OK", "success", False
+    if (os.environ.get("EVIDENCE_STATUS") or "") == "invalid":
+        return "unverified", "E_EVIDENCE_MISMATCH", "action_required", False
     if not found:
         return "unverified", resolve_code or "E_NO_BLOCK", "action_required", False
 
@@ -253,7 +264,9 @@ def publish() -> int:
     temp = Path(os.environ["RUNNER_TEMP"])
 
     claims, output_block = _receipt_display(temp / "receipt.md") if verified else ("", "")
-    summary = _summary(state, code, job, commit, source, claims)
+    evidence_status = os.environ.get("EVIDENCE_STATUS") or ""
+    evidence_label = {"ok": "uploaded", "invalid": "invalid"}.get(evidence_status, "digest only")
+    summary = _summary(state, code, job, commit, source, claims, evidence_label)
 
     payload = {
         "name": check_name,
@@ -309,12 +322,70 @@ def publish() -> int:
     return 0
 
 
+def _safe_extract(archive: Path, destination: Path) -> None:
+    destination.mkdir(parents=True, exist_ok=True)
+    total = 0
+    count = 0
+    with tarfile.open(archive, "r:*") as tar:
+        for member in tar.getmembers():
+            name = PurePosixPath(member.name)
+            if name.is_absolute() or ".." in name.parts:
+                raise OutboardError("E_EVIDENCE_ARCHIVE", f"unsafe path: {member.name}", 2)
+            if member.issym() or member.islnk():
+                raise OutboardError("E_EVIDENCE_ARCHIVE", f"link in archive: {member.name}", 2)
+            if member.isdir():
+                continue
+            if not member.isfile():
+                raise OutboardError("E_EVIDENCE_ARCHIVE", f"non-regular entry: {member.name}", 2)
+            count += 1
+            total += member.size
+            if count > MAX_EVIDENCE_FILES or total > MAX_EVIDENCE_BYTES:
+                raise OutboardError("E_EVIDENCE_ARCHIVE", "archive exceeds the size limit", 2)
+            target = destination.joinpath(*name.parts)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            source = tar.extractfile(member)
+            if source is None:
+                raise OutboardError("E_EVIDENCE_ARCHIVE", f"unreadable entry: {member.name}", 2)
+            with source, target.open("wb") as handle:
+                shutil.copyfileobj(source, handle)
+
+
+def evidence(receipt_path: str, archive_path: str, out_dir: str) -> int:
+    """Unpack the operator's evidence and match it to the signed digest."""
+    payload, _ = extract(Path(receipt_path).read_text(encoding="utf-8"))
+    receipt = json.loads(payload)
+    expected = (receipt.get("evidence") or {}).get("digest")
+    if not isinstance(expected, str):
+        raise OutboardError("E_INTERNAL", "receipt has no evidence digest")
+
+    out = Path(out_dir)
+    if out.exists():
+        shutil.rmtree(out)
+    _safe_extract(Path(archive_path), out)
+    count, digest = digest_directory(out)
+    if digest != expected:
+        raise OutboardError(
+            "E_EVIDENCE_MISMATCH",
+            f"evidence digest is {digest}, receipt says {expected}",
+            2,
+        )
+    print(f"{count} files  {digest}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
     if args == ["collect"]:
         return collect()
     if args == ["publish"]:
         return publish()
+    if args and args[0] == "evidence":
+        parser = argparse.ArgumentParser(prog="outboard.workflow evidence", add_help=False)
+        parser.add_argument("--receipt", required=True)
+        parser.add_argument("--archive", required=True)
+        parser.add_argument("--out", required=True)
+        parsed, _ = parser.parse_known_args(args[1:])
+        return evidence(parsed.receipt, parsed.archive, parsed.out)
     print("usage: python -m outboard.workflow collect|publish", file=sys.stderr)
     return EXIT_ERROR
 

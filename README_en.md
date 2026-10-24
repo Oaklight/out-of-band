@@ -170,9 +170,22 @@ Then make `smoke-verified` a required check in branch protection. The check name
 is public API: renaming it silently changes what the branch protects.
 
 Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
-`allowed-signers`, `trusted-authors`. Output: `verdict`.
+`allowed-signers`, `trusted-authors`, `evidence-url`. Output: `verdict`.
 
 Pin `uses:` by commit SHA. A tag is mutable.
+
+### Uploading evidence
+
+Empty `evidence-url` keeps the current behaviour: the receipt commits to a
+digest and nothing is uploaded.
+
+Set it to an HTTPS URL of a bundle made with `outboard pack`, and the workflow
+downloads it, extracts it safely, recomputes the digest, and uploads it as the
+`outboard-evidence` artifact. A mismatch makes the check unverified.
+
+```bash
+outboard pack --evidence-dir ./evidence --out evidence.tgz
+```
 
 ### Receipt collection
 
