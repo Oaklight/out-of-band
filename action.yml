@@ -1,0 +1,185 @@
+name: out-of-band receipt
+description: Verify a signed CI receipt and publish a check run
+author: Peng Ding
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  commit:
+    description: Commit SHA the receipt must name
+    required: true
+  job:
+    description: Job name the receipt must carry
+    required: true
+  pr:
+    description: Pull request number used to collect the receipt and post the summary; 0 disables both
+    required: false
+    default: "0"
+  required:
+    description: Whether this commit needs a receipt at all
+    required: false
+    default: "true"
+  check-name:
+    description: Check run name; branch protection matches this
+    required: false
+    default: oob
+  receipt:
+    description: Receipt text passed directly; takes precedence over pull request comments
+    required: false
+    default: ""
+  allowed-signers:
+    description: Path to the allowed signers file in the caller repository, read from the default branch
+    required: false
+    default: .github/allowed_signers
+  trusted-authors:
+    description: Comma-separated logins allowed to supply a receipt in a comment
+    required: false
+    default: ""
+  evidence-url:
+    description: HTTPS URL of a .tar.gz evidence bundle; empty checks the digest only
+    required: false
+    default: ""
+  version:
+    description: Version of out-of-band to install; empty installs nothing
+    required: false
+    default: "0.4.0"
+  source:
+    description: Local path to install instead of version, for development and the in-repo self-test
+    required: false
+    default: ""
+  python-version:
+    description: Python version used to run the verifier
+    required: false
+    default: "3.12"
+  token:
+    description: Token used for the GitHub API; needs checks write and pull requests write
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  verdict:
+    description: verified, failed, unverified, or not applicable
+    value: ${{ steps.publish.outputs.verdict }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install out-of-band
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        SOURCE: ${{ inputs.source }}
+      run: |
+        if [ -n "$SOURCE" ]; then
+          python -m pip install "$SOURCE"
+        elif [ -n "$VERSION" ]; then
+          python -m pip install "out-of-band==${VERSION}"
+        else
+          python -c "import oob" 2>/dev/null || {
+            echo "out-of-band is not installed and no version or source was given" >&2
+            exit 1
+          }
+        fi
+
+    - name: Read allowed signers from the default branch
+      id: signers
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REPO: ${{ github.repository }}
+        DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        ALLOWED: ${{ inputs.allowed-signers }}
+      run: |
+        branch="${DEFAULT_BRANCH:-$(gh api "repos/$REPO" --jq .default_branch)}"
+        file="$RUNNER_TEMP/oob-allowed-signers"
+        gh api "repos/$REPO/contents/$ALLOWED?ref=$branch" \
+          -H "Accept: application/vnd.github.raw" > "$file"
+        echo "file=$file" >> "$GITHUB_OUTPUT"
+
+    - name: Resolve receipt
+      id: resolve
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        PR: ${{ inputs.pr }}
+        RECEIPT: ${{ inputs.receipt }}
+        TRUSTED: ${{ inputs.trusted-authors }}
+        COMMIT: ${{ inputs.commit }}
+        JOB: ${{ inputs.job }}
+      run: python -m oob.workflow collect
+
+    - name: Verify receipt
+      id: verify
+      if: ${{ inputs.required == 'true' && steps.resolve.outputs.found == 'true' }}
+      shell: bash
+      env:
+        ALLOWED: ${{ steps.signers.outputs.file }}
+        COMMIT: ${{ inputs.commit }}
+        JOB: ${{ inputs.job }}
+      run: |
+        set +e
+        python -m oob verify \
+          --block "$RUNNER_TEMP/receipt.md" \
+          --allowed-signers "$ALLOWED" \
+          --repo "$GITHUB_REPOSITORY" \
+          --commit "$COMMIT" \
+          --expect-job "$JOB" \
+          --json > "$RUNNER_TEMP/verdict.json"
+        echo "exit=$?" >> "$GITHUB_OUTPUT"
+        exit 0
+
+    - name: Fetch and check evidence
+      id: evidence
+      if: ${{ inputs.required == 'true' && steps.resolve.outputs.found == 'true' && inputs.evidence-url != '' && (steps.verify.outputs.exit == '0' || steps.verify.outputs.exit == '1') }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        URL: ${{ inputs.evidence-url }}
+      run: |
+        set +e
+        curl -fsSL --max-time 120 --max-filesize 52428800 \
+          -H "Authorization: Bearer $GH_TOKEN" \
+          -o "$RUNNER_TEMP/evidence.tgz" "$URL"
+        if [ $? -ne 0 ]; then
+          echo "status=invalid" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        python -m oob.workflow evidence \
+          --receipt "$RUNNER_TEMP/receipt.md" \
+          --archive "$RUNNER_TEMP/evidence.tgz" \
+          --out "$RUNNER_TEMP/evidence"
+        if [ $? -eq 0 ]; then
+          echo "status=ok" >> "$GITHUB_OUTPUT"
+        else
+          echo "status=invalid" >> "$GITHUB_OUTPUT"
+        fi
+        exit 0
+
+    - name: Upload evidence
+      if: ${{ steps.evidence.outputs.status == 'ok' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: oob-evidence
+        path: ${{ runner.temp }}/evidence
+
+    - name: Publish result
+      id: publish
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        REQUIRED: ${{ inputs.required }}
+        FOUND: ${{ steps.resolve.outputs.found }}
+        RESOLVE_CODE: ${{ steps.resolve.outputs.code }}
+        SOURCE: ${{ steps.resolve.outputs.source }}
+        VERIFY_EXIT: ${{ steps.verify.outputs.exit }}
+        EVIDENCE_STATUS: ${{ steps.evidence.outputs.status }}
+        COMMIT: ${{ inputs.commit }}
+        JOB: ${{ inputs.job }}
+        PR: ${{ inputs.pr }}
+        CHECK_NAME: ${{ inputs.check-name }}
+      run: python -m oob.workflow publish

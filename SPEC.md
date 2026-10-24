@@ -361,16 +361,27 @@ bundle.
 
 There is no `publish` command. Creating a check run requires a GitHub App
 identity; inside Actions, `GITHUB_TOKEN` is the Actions App, so publishing lives
-in the workflow (§6). A PAT can create only commit statuses, which is a different
+in the CI verifier: the reusable workflow or the composite action (§6). A PAT
+can create only commit statuses, which is a different
 object and is not this gate.
 
 This is a deliberate deviation from the handoff, which listed `publish` as an
 optional verb. Verified 2026-10-23: the check-runs API rejects a user token with
 `You must authenticate via a GitHub App.`
 
-## 6. Reusable workflow contract
+## 6. CI verifier contract
 
-File: `.github/workflows/verify.yml`, triggered by `workflow_call` only.
+Two carriers implement this contract:
+
+- `.github/workflows/verify.yml`, a reusable workflow triggered by
+  `workflow_call` only. It runs as its own job, checks out the caller's default
+  branch, and declares its own permissions, timeout, and concurrency.
+- `action.yml`, a composite action called from a step. It runs in the caller's
+  job, cannot declare permissions, and reads `allowed-signers` from the default
+  branch through the contents API instead of checking out. The caller sets the
+  trigger, permissions, and timeout.
+
+Everything below applies to both unless a rule names one carrier.
 
 ### 6.1 Inputs
 
@@ -380,11 +391,15 @@ File: `.github/workflows/verify.yml`, triggered by `workflow_call` only.
 | `commit` | string | required | expected head SHA; passed to `check-runs` as `head_sha` |
 | `job` | string | required | expected `job` value |
 | `required` | boolean | `true` | whether this PR needs a receipt |
-| `check-name` | string | `out-of-band` | check run name; this is what branch protection matches |
+| `check-name` | string | `oob` | check run name; this is what branch protection matches |
 | `receipt` | string | `""` | receipt text passed directly (dispatch payload); takes precedence over comments |
 | `allowed-signers` | string | `.github/allowed_signers` | path in the caller repository, read from the default branch |
 | `trusted-authors` | string | `""` | comma-separated logins allowed to supply a receipt. Empty means comments whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` |
 | `evidence-url` | string | `""` | HTTPS URL of a `.tar.gz` evidence bundle. Empty means digest only |
+
+The action takes the same inputs as strings, plus `version`, `source`,
+`python-version`, and `token`. Its `required` input is the string `true` or
+`false`.
 
 ### 6.2 Permissions
 
@@ -398,31 +413,36 @@ permissions:
 ```
 
 The called workflow uses no repository secrets. `GITHUB_TOKEN` is the only
-credential.
+credential. The action declares no permissions of its own; the caller's job must
+grant the same set.
 
 ### 6.3 Execution rules
 
-1. Check out the caller repository at its **default branch** by setting
-   `ref: ${{ github.event.repository.default_branch }}` explicitly, with
-   `persist-credentials: false`. A bare `actions/checkout` on a
+1. **Workflow.** Check out the caller repository at its **default branch** by
+   setting `ref: ${{ github.event.repository.default_branch }}` explicitly,
+   with `persist-credentials: false`. A bare `actions/checkout` on a
    `pull_request` event checks out the PR merge ref, which would let a PR
    supply its own `allowed_signers`. The file is never read from a PR
    checkout.
-2. Install `out-of-band` at an exact version pinned in the workflow file. Inside
-   the tool repository itself the workflow installs from the checked-out source
-   instead, so the self-test exercises unreleased code; consumers always get
-   the pinned release.
-3. The only repository file read besides the workflow itself is
+2. **Action.** Read `allowed-signers` from the default branch through the
+   contents API. Never read it from the caller's workspace.
+3. **Both.** Install `out-of-band` at an exact version. Inside the tool
+   repository itself the verifier installs from the checked-out source instead,
+   so the self-test exercises unreleased code; consumers always get a pinned
+   release. The action's `version` input is the pin, and `source` is the
+   self-test path.
+4. The only repository file read besides the verifier itself is
    `allowed-signers`.
-4. Treat the receipt as data. Cap its size before parsing. Never interpolate it
+5. Treat the receipt as data. Cap its size before parsing. Never interpolate it
    into a shell command.
-5. Set a job timeout of 5 minutes.
-6. When `evidence-url` is set and the receipt verified, download the bundle
+6. **Workflow.** Set a job timeout of 5 minutes. The action inherits the
+   caller's job timeout.
+7. When `evidence-url` is set and the receipt verified, download the bundle
    (50 MiB cap), extract it without following links or escaping the directory,
    recompute the digest, and compare it with the signed `evidence.digest`. A
    mismatch makes the result unverified (`E_EVIDENCE_MISMATCH`); a matching
    bundle is uploaded as the `oob-evidence` artifact.
-7. On `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so no check can
+8. On `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so no check can
    be published. Fork PRs must be driven by `pull_request_target`,
    `issue_comment`, or `workflow_dispatch` (§6.9).
 
@@ -553,7 +573,7 @@ The `uses:` reference is pinned to a commit SHA. A tag is mutable.
 ### 6.9 Triggers
 
 The reusable workflow declares `workflow_call` only; the caller picks the
-trigger.
+trigger. The action has no trigger of its own; its caller's workflow picks it.
 
 - `workflow_dispatch` — the receipt is supplied through the `receipt` input.
 - `issue_comment` — a trusted operator posts the receipt; the run executes

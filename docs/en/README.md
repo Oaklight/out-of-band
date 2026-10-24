@@ -17,6 +17,7 @@ Prefer a visual walkthrough? [Take the guided tour](https://oaklight.github.io/o
 | Record a benchmark or model run against a commit | [Hardware run](scenario-hardware-run.md) |
 | Attest pushes to a branch, with no PR involved | [Branch gate](scenario-branch-gate.md) |
 | Cover several machines or jobs | [Multiple jobs](scenario-multi-job.md) |
+| Use the verifier as a step instead of a job | [The action](action.md) |
 | Sign on a host with no outbound network | [Air-gapped hosts](offline.md) |
 | Generate, rotate, or debug keys | [Operations](operations.md) |
 | See the evidence from the self-test runs | [Validation](validation.md) |
@@ -29,7 +30,7 @@ Every setup has the same three parts.
 1. **A receipt.** One line of JSON and an SSH signature, produced by the
    operator on the machine that ran the job with `oob sign`. No network,
    no GitHub credential.
-2. **A verifier.** The reusable workflow checks the signature against
+2. **A verifier.** The workflow or action checks the signature against
    `allowed_signers` read from the default branch, then binds the repository,
    commit, tree, and job.
 3. **A check run.** GitHub publishes the verdict on the commit. Branch
@@ -49,7 +50,7 @@ asks a human instead of guessing.
 
 ## Before wiring anything
 
-- Pin the reusable workflow by full commit SHA. A tag can move.
+- Pin the workflow or action by full commit SHA. A tag can move.
 - Put `allowed_signers` in `.github/` on the default branch. That file is the
   trust root, and a PR cannot change it for itself.
 - Choose `check-name` once. Branch protection matches the string, so renaming
