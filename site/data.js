@@ -244,7 +244,7 @@ const SCENARIOS = [
           zh: "<code>patches/</code> 下的改动要在设备上测。托管的 runner 给不了设备，于是分支保护在等一个只有人才能满足的 check。后面几步要做的，就是让这个 check 值得信任。",
         },
         github: [
-          { t: "event", text: "pull_request · synchronize" },
+          { t: "event", text: "pull_request_target · synchronize" },
           {
             t: "pr",
             title: {
@@ -372,6 +372,13 @@ const SCENARIOS = [
             text: {
               en: "Everything inside <code>${{ }}</code> is filled by GitHub at run time. You do not touch it.",
               zh: "<code>${{ }}</code> 里的东西由 GitHub 在运行时填好，不用管。",
+            },
+          },
+          {
+            t: "note",
+            text: {
+              en: "The gate runs <code>pull_request_target</code>: GitHub takes this file from the default branch, so a PR cannot edit the check that judges it.",
+              zh: "门禁用 <code>pull_request_target</code>：文件取自默认分支，PR 改不了审判自己的 check。",
             },
           },
         ],
@@ -1245,8 +1252,8 @@ const ADOPT = [
   {
     title: { en: "Add a caller workflow", zh: "加上调用方 workflow" },
     text: {
-      en: "Copy the closest scenario. Pin the reusable workflow by full commit SHA, not a tag.",
-      zh: "照最接近的场景抄一份。可复用 workflow 用完整 commit SHA 固定，不要用 tag。",
+      en: "Copy the closest scenario. Pin the reusable workflow by full commit SHA, not a tag, and let Dependabot bump it.",
+      zh: "照最接近的场景抄一份。可复用 workflow 用完整 commit SHA 固定，不要用 tag；升级交给 Dependabot。",
     },
   },
   {

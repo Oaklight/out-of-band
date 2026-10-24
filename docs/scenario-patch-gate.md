@@ -15,7 +15,7 @@ reusable workflow.
 name: receipt gate
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
@@ -29,7 +29,7 @@ jobs:
   policy:
     # Re-run when a comment carries a receipt; ignore every other comment.
     if: >
-      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request != null &&
        contains(github.event.comment.body, '<!-- receipt:v1 -->'))
@@ -118,6 +118,43 @@ gh pr comment 5 --body-file receipt.md
 foldable transcript, which is where a reviewer looks first. Do not put secrets
 there; the check is public.
 
+## Where the workflow comes from
+
+`pull_request` uses the workflow file from the PR's merge commit. A contributor
+can therefore edit the gate that judges them: change `required`, publish a green
+check under the expected name, or delete the job and leave the required check
+missing. Branch protection cannot tell the difference.
+
+`pull_request_target` uses the default branch's copy, with a write token, for
+fork PRs too. That is why the example above triggers on it. The rule that comes
+with it: never check out or run PR code in this workflow. The verifier reads
+`allowed_signers` from the default branch and treats the receipt as data.
+
+## Pinning and upgrades
+
+The `uses:` line is written once, on the default branch. A normal pull request
+does not touch it. Upgrading is a separate, small PR; if two upgrade PRs edit
+the same line they conflict like any other change, so land them one at a time.
+
+Options for the ref:
+
+- **Full commit SHA** (recommended): immutable. Add a `# v0.3.0` comment so a
+  tool knows the version, and let Dependabot open the bump PR.
+- **Release tag**: shorter, but a tag can be moved to another commit.
+- **Default branch**: always current, never reviewed. Do not use it for a gate.
+- **A local copy** (`uses: ./.github/workflows/verify.yml`): no external pin,
+  but you now maintain the verifier and its upgrades.
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+```
+
 ## What you replace
 
 The workflow is a template, but only a few things are yours to set. Everything
@@ -162,9 +199,10 @@ deleted.
 
 ## Notes
 
-- Do not check out the PR head in the verifying job. The workflow reads
-  `allowed_signers` from the default branch on purpose.
-- A fork PR gets a read-only token on `pull_request`. Use `issue_comment` as
-  shown, or `pull_request_target`.
+- Do not check out or execute PR code in this workflow. It runs with a write
+  token, including for fork PRs.
+- A fork PR gets a read-only token on `pull_request`. `pull_request_target` and
+  `issue_comment` both avoid that; the example uses the former so the gate runs
+  on every push without a comment.
 - Evidence is optional. Add `evidence-url` when the logs matter; see
   [Hardware run](scenario-hardware-run.md).

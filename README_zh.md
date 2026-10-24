@@ -114,7 +114,8 @@ outboard verify --block block.md \
 name: receipt gate
 
 on:
-  pull_request:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
 
@@ -125,30 +126,45 @@ permissions:
 
 jobs:
   policy:
+    # A receipt arriving as a comment must trigger a fresh run.
+    if: >
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '<!-- receipt:v1 -->'))
     runs-on: ubuntu-latest
     outputs:
+      pr: ${{ steps.context.outputs.pr }}
+      commit: ${{ steps.context.outputs.commit }}
       requires: ${{ steps.paths.outputs.requires }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          commit="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)"
+          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
       - id: paths
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ steps.context.outputs.pr }}
         run: |
-          if git diff --quiet "$BASE" "$HEAD" -- src/; then
-            echo "requires=false" >> "$GITHUB_OUTPUT"
-          else
+          if gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" \
+               --jq '.[].filename' | grep -qE '^src/'; then
             echo "requires=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "requires=false" >> "$GITHUB_OUTPUT"
           fi
 
   verified:
     needs: policy
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full commit SHA>
+    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha> # v0.3.0
     with:
-      pr: ${{ github.event.pull_request.number || 0 }}
-      commit: ${{ github.event.pull_request.head.sha || github.sha }}
+      pr: ${{ needs.policy.outputs.pr }}
+      commit: ${{ needs.policy.outputs.commit }}
       job: smoke
       required: ${{ needs.policy.outputs.requires == 'true' }}
       check-name: smoke-verified
@@ -157,9 +173,11 @@ jobs:
 
 然后在分支保护里把 `smoke-verified` 设为必需检查。check 名称是对外契约，改名等于悄悄改了保护规则。
 
+这里用 `pull_request_target` 而不是 `pull_request`：它跑默认分支上的那份 workflow，PR 改不了审判自己的门。它拿着写权限，fork PR 也一样，所以这个 workflow 里不要 checkout、不要执行 PR 代码。验证器只从默认分支读 `allowed_signers`，并把回执当数据。`policy` 通过 API 解析 head，这样评论触发的运行不会退回成 `github.sha`（那是基分支）。
+
 输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`；输出：`verdict`。
 
-`uses:` 用完整 commit SHA 固定，tag 是可以被挪动的。
+`uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.3.0`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
 
 ### 上传证据
 
@@ -182,7 +200,7 @@ outboard pack --evidence-dir ./evidence --out evidence.tgz
 
 ### 触发方式和 fork
 
-从 fork 来的 `pull_request` 只有只读 token，什么都发布不了。fork 场景用 `pull_request_target`（跑默认分支代码，不 checkout PR）或者 `issue_comment`。
+从 fork 来的 `pull_request` 只有只读 token，什么都发布不了。fork 场景用 `pull_request_target`（跑默认分支代码，不 checkout PR）或者 `issue_comment`。另外，`pull_request` 跑的是 PR 自己那份 workflow，贡献者可以借此把门禁改松；这个 job 不要用它。
 
 ### 凭据
 
