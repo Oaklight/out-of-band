@@ -335,6 +335,12 @@ def publish() -> int:
     if summary_file:
         with open(summary_file, "a", encoding="utf-8") as handle:
             handle.write(summary + "\n")
+            # Composite action steps get separate summary files and the runner
+            # has been known to keep only the last one. Write the evidence
+            # here, in the final step, so it survives with the verdict.
+            evidence_dir = (os.environ.get("EVIDENCE_DIR") or "").strip()
+            if evidence_status == "ok" and evidence_dir and Path(evidence_dir).is_dir():
+                evidence_markdown(evidence_dir, handle)
 
     if report:
         pr = (os.environ.get("PR") or "0").strip()
@@ -440,8 +446,8 @@ def _md_cell(text: str) -> str:
     return html.escape(text, quote=False).replace("|", "&#124;")
 
 
-def evidence_markdown(directory: str) -> int:
-    """Print a bounded Markdown manifest and text preview for the run summary."""
+def evidence_markdown(directory: str, handle: Any = None) -> int:
+    """Write a bounded Markdown manifest and text preview for the run summary."""
     root = Path(directory)
     paths = sorted(path for path in root.rglob("*") if path.is_file())
     lines = ["### evidence", "", "| file | bytes | sha256 |", "| --- | --- | --- |"]
@@ -477,7 +483,11 @@ def evidence_markdown(directory: str) -> int:
         previews += 1
     if len(paths) > previews:
         lines += ["", f"{len(paths) - previews} file(s) are in the artifact but not previewed."]
-    print("\n".join(lines))
+    text = "\n".join(lines)
+    if handle is None:
+        print(text)
+    else:
+        handle.write(text + "\n")
     return 0
 
 
