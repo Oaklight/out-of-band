@@ -82,7 +82,7 @@ required check stays pending and the merge stays blocked.
 pip install out-of-band
 ```
 
-Python 3.11+ and OpenSSH with `ssh-keygen -Y sign` (OpenSSH 8.0+). No runtime
+Python 3.10+ and OpenSSH with `ssh-keygen -Y sign` (OpenSSH 8.0+). No runtime
 dependencies.
 
 ## Quickstart

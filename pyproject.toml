@@ -7,12 +7,17 @@ name = "out-of-band"
 version = "0.4.0"
 description = "Out-of-band CI receipts: sign where GitHub cannot reach, verify in Actions, publish a check."
 readme = "README_en.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Peng Ding" }]
 dependencies = []
 classifiers = [
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "License :: OSI Approved :: Apache Software License",
   "Environment :: Console",
   "Topic :: Software Development :: Quality Assurance",
@@ -48,4 +53,4 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
