@@ -5,6 +5,7 @@ on:
     paths:
       - "src/**"
       - "tests/**"
+      - "action.yml"
       - ".github/workflows/**"
       - ".github/selftest_allowed_signers"
   workflow_dispatch:
@@ -222,6 +223,205 @@ jobs:
       allowed-signers: .github/selftest_allowed_signers
       trusted-authors: "github-actions[bot]"
 
+  action-valid:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest
+          check-name: oob-action-valid
+          receipt: ${{ needs.operator.outputs.valid }}
+          allowed-signers: .github/selftest_allowed_signers
+          source: .
+
+  action-fail:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest
+          check-name: oob-action-fail
+          receipt: ${{ needs.operator.outputs.failing }}
+          allowed-signers: .github/selftest_allowed_signers
+          source: .
+
+  action-altered:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest
+          check-name: oob-action-altered
+          receipt: ${{ needs.operator.outputs.altered }}
+          allowed-signers: .github/selftest_allowed_signers
+          source: .
+
+  action-stranger:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest
+          check-name: oob-action-stranger
+          receipt: ${{ needs.operator.outputs.stranger }}
+          allowed-signers: .github/selftest_allowed_signers
+          source: .
+
+  action-not-required:
+    needs: operator
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest
+          required: "false"
+          check-name: oob-action-not-required
+          receipt: ${{ needs.operator.outputs.altered }}
+          allowed-signers: .github/selftest_allowed_signers
+          source: .
+
+  action-comment:
+    needs: [operator, comment]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          pr: ${{ github.event.pull_request.number }}
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest
+          check-name: oob-action-comment
+          allowed-signers: .github/selftest_allowed_signers
+          trusted-authors: "github-actions[bot]"
+          source: .
+
+  action-comment-secondary:
+    needs: [operator, comment]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          pr: ${{ github.event.pull_request.number }}
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest-secondary
+          check-name: oob-action-comment-secondary
+          allowed-signers: .github/selftest_allowed_signers
+          trusted-authors: "github-actions[bot]"
+          source: .
+
+  action-comment-missing-job:
+    needs: [operator, comment]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      verdict: ${{ steps.oob.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - id: oob
+        uses: ./
+        with:
+          pr: ${{ github.event.pull_request.number }}
+          commit: ${{ needs.operator.outputs.commit }}
+          job: selftest-missing
+          check-name: oob-action-comment-missing-job
+          allowed-signers: .github/selftest_allowed_signers
+          trusted-authors: "github-actions[bot]"
+          source: .
+
   assert:
     needs:
       - verify-valid
@@ -232,6 +432,14 @@ jobs:
       - verify-comment
       - verify-comment-secondary
       - verify-comment-missing-job
+      - action-valid
+      - action-fail
+      - action-altered
+      - action-stranger
+      - action-not-required
+      - action-comment
+      - action-comment-secondary
+      - action-comment-missing-job
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -245,6 +453,14 @@ jobs:
           COMMENT: ${{ needs.verify-comment.outputs.verdict }}
           COMMENT_SECONDARY: ${{ needs.verify-comment-secondary.outputs.verdict }}
           COMMENT_MISSING_JOB: ${{ needs.verify-comment-missing-job.outputs.verdict }}
+          ACTION_VALID: ${{ needs.action-valid.outputs.verdict }}
+          ACTION_FAIL: ${{ needs.action-fail.outputs.verdict }}
+          ACTION_ALTERED: ${{ needs.action-altered.outputs.verdict }}
+          ACTION_STRANGER: ${{ needs.action-stranger.outputs.verdict }}
+          ACTION_NOT_REQUIRED: ${{ needs.action-not-required.outputs.verdict }}
+          ACTION_COMMENT: ${{ needs.action-comment.outputs.verdict }}
+          ACTION_COMMENT_SECONDARY: ${{ needs.action-comment-secondary.outputs.verdict }}
+          ACTION_COMMENT_MISSING_JOB: ${{ needs.action-comment-missing-job.outputs.verdict }}
           EVENT: ${{ github.event_name }}
         run: |
           status=0
@@ -261,11 +477,19 @@ jobs:
           check altered          "$ALTERED"      "unverified"
           check stranger         "$STRANGER"     "unverified"
           check not-required     "$NOT_REQUIRED" "not applicable"
+          check action-valid     "$ACTION_VALID" "verified"
+          check action-fail      "$ACTION_FAIL"  "failed"
+          check action-altered   "$ACTION_ALTERED" "unverified"
+          check action-stranger  "$ACTION_STRANGER" "unverified"
+          check action-not-required "$ACTION_NOT_REQUIRED" "not applicable"
           # The comment jobs only run on a pull_request; a manual dispatch
           # on main has none of them.
           if [ "$EVENT" = "pull_request" ]; then
             check comment "$COMMENT" "verified"
             check comment-secondary "$COMMENT_SECONDARY" "verified"
             check comment-missing-job "$COMMENT_MISSING_JOB" "unverified"
+            check action-comment "$ACTION_COMMENT" "verified"
+            check action-comment-secondary "$ACTION_COMMENT_SECONDARY" "verified"
+            check action-comment-missing-job "$ACTION_COMMENT_MISSING_JOB" "unverified"
           fi
           exit $status
