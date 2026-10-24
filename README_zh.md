@@ -64,7 +64,7 @@ check ──► evidence ──► sign            PR comment / dispatch
 pip install out-of-band
 ```
 
-需要 Python 3.11+ 和 OpenSSH 8.0+（`ssh-keygen -Y sign`），没有运行时依赖。
+需要 Python 3.10+ 和 OpenSSH 8.0+（`ssh-keygen -Y sign`），没有运行时依赖。
 
 ## 快速上手
 

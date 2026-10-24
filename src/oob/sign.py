@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import __version__, gitops
@@ -15,7 +15,7 @@ from .receipt import MAX_OUTPUT_BYTES, build, compose_block, serialize, validate
 
 
 def _now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _ssh_sign(payload: bytes, key: Path) -> str:

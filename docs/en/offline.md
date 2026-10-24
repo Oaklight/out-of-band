@@ -79,7 +79,7 @@ dispatch or comment.
 ## Carry the tool in
 
 One file is usually enough. Each release carries `oob-<version>.pyz`: a
-zipapp holding the package and an entry point, needing only Python 3.11+.
+zipapp holding the package and an entry point, needing only Python 3.10+.
 
 ```bash
 scp oob-0.4.0.pyz host:
@@ -88,12 +88,12 @@ ssh host python3 oob-0.4.0.pyz --version
 
 It behaves like the installed command, so every example below works with
 `python3 oob-0.4.0.pyz` in place of `oob`. Run it as `./oob-0.4.0.pyz` and the
-POSIX launcher picks the first Python 3.11+ it finds; if none exists it says so
+POSIX launcher picks the first Python 3.10+ it finds; if none exists it says so
 instead of failing with a syntax error. Windows has no shebang, so use
 `python oob-0.4.0.pyz`.
 
 If the site prefers a normal install, the wheel is pure Python
-(`py3-none-any`), so any 3.11+ interpreter can use it. On a connected machine:
+(`py3-none-any`), so any 3.10+ interpreter can use it. On a connected machine:
 
 ```bash
 pip download out-of-band==0.4.0 -d wheelhouse
