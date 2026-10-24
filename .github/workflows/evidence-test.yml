@@ -72,9 +72,11 @@ jobs:
           allowed-signers: .github/selftest_allowed_signers
           evidence-url: "https://gist.githubusercontent.com/Oaklight/610187df26e62e140bafcd4cb5c26d8d/raw/evidence.tgz"
           source: .
-      - name: Show the evidence summary
+      - name: The evidence summary was written
         if: always()
-        run: tail -40 "$GITHUB_STEP_SUMMARY"
+        run: |
+          grep -l "### evidence" "$RUNNER_TEMP"/_runner_file_commands/step_summary_*
+          grep -h "run.log" "$RUNNER_TEMP"/_runner_file_commands/step_summary_*
 
   via-file:
     needs: operator
@@ -109,9 +111,11 @@ jobs:
           allowed-signers: .github/selftest_allowed_signers
           evidence-file: ${{ runner.temp }}/evidence.tgz
           source: .
-      - name: Show the evidence summary
+      - name: The evidence summary was written
         if: always()
-        run: tail -40 "$GITHUB_STEP_SUMMARY"
+        run: |
+          grep -l "### evidence" "$RUNNER_TEMP"/_runner_file_commands/step_summary_*
+          grep -h "run.log" "$RUNNER_TEMP"/_runner_file_commands/step_summary_*
 
   assert:
     needs: [via-url, via-file]
