@@ -243,3 +243,37 @@ def test_collect_reports_the_parse_error_when_every_block_is_malformed(
     text = output.read_text()
     assert "found=false" in text
     assert "code=E_BAD_FENCE" in text
+
+
+def test_publish_carries_the_signed_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[tuple[str, ...], str | None]] = []
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/widget")
+    monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "out"))
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary"))
+    monkeypatch.setenv("REQUIRED", "true")
+    monkeypatch.setenv("FOUND", "true")
+    monkeypatch.setenv("VERIFY_EXIT", "0")
+    monkeypatch.setenv("COMMIT", "a" * 40)
+    monkeypatch.setenv("JOB", "smoke")
+    monkeypatch.setenv("CHECK_NAME", "gate")
+    monkeypatch.setenv("PR", "0")
+    (tmp_path / "verdict.json").write_text('{"verdict":"pass","code":"OK"}')
+    payload = json.dumps(
+        {"schema": "receipt/v2", "commit": "a" * 40, "output": "<script>alert(1)</script>"},
+        separators=(",", ":"),
+    )
+    (tmp_path / "receipt.md").write_text(
+        f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\nAAA\n```\n",
+        encoding="utf-8",
+    )
+
+    def fake_gh(*args: str, stdin: str | None = None) -> str:
+        calls.append((args, stdin))
+        return ""
+
+    monkeypatch.setattr(workflow, "_gh", fake_gh)
+    assert workflow.publish() == 0
+    check = json.loads(next(stdin for args, stdin in calls if "--input" in args and stdin))
+    assert "<details>" in check["output"]["text"]
+    assert "&lt;script&gt;" in check["output"]["text"]

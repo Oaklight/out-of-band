@@ -45,6 +45,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="consumer claim, repeatable",
     )
     sign_parser.add_argument("--allow-dirty", action="store_true")
+    sign_parser.add_argument(
+        "--output-file",
+        help="curated check output to carry in the receipt (v2, at most 4 KiB)",
+    )
     sign_parser.add_argument("--out", type=Path, help="write the block here instead of stdout")
 
     verify_parser = sub.add_parser("verify", help="verify a receipt block")
@@ -109,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
                 repo=args.repo,
                 claims=args.claims,
                 allow_dirty=args.allow_dirty,
+                output_file=args.output_file,
             )
             if args.out:
                 args.out.write_text(block, encoding="utf-8")

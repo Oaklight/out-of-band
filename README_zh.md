@@ -83,8 +83,12 @@ outboard sign \
   --commit "$(git rev-parse HEAD)" \
   --result pass \
   --evidence-dir ./evidence \
-  --key ~/.ssh/outboard
+  --key ~/.ssh/outboard \
+  --output-file ./check-output.txt
 ```
+
+`--output-file` 是可选的：把检查打印的内容（最多 4 KiB）一起签进回执（schema
+`receipt/v2`），check 页面会在摘要下面折叠展示。不带它，回执仍是 `receipt/v1`。
 
 输出就是回执：一个 HTML 标记、一行 JSON、一段 SSH 签名。贴成 PR 评论，或者通过 `workflow_dispatch` 传进去。
 

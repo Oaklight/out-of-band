@@ -71,7 +71,12 @@ Exactly these top-level fields. Unknown fields are rejected, not ignored.
 | `evidence` | object | yes | see below |
 | `evidence.count` | integer | yes | 0–1,000,000; no floats |
 | `evidence.digest` | string | yes | `sha256:` + 64 lowercase hex |
+| `output` | string | no | v2 only; at most 4096 bytes; the operator's curated check output |
 | `claims` | object | no | defaults to `{}`; rules in §1.2.1 |
+
+`output` exists only in `receipt/v2`. A `receipt/v1` object that carries it is
+rejected. The signer emits v2 only when the operator supplies output; otherwise
+the receipt stays v1.
 
 No other top-level fields. No nested objects other than `evidence` and `claims`.
 No floats anywhere. No `null` values.
@@ -185,8 +190,10 @@ Verification runs these steps in order and stops at the first failure:
    `E_MULTI_BLOCK`, `E_BAD_FENCE`, `E_MULTI_LINE`.
 3. **JSON parse.** UTF-8, one object, no duplicate keys, no floats, no null →
    `E_BAD_JSON`, `E_DUP_KEY`, `E_BAD_TYPE`.
-4. **Schema.** Version, field set, types, value patterns, claims limits →
-   `E_BAD_SCHEMA`, `E_UNKNOWN_FIELD`, `E_BAD_VALUE`, `E_CLAIMS_LIMIT`.
+4. **Schema.** Version (`receipt/v1` or `receipt/v2`), the field set for that
+   version, types, value patterns, output and claims limits →
+   `E_BAD_SCHEMA`, `E_UNKNOWN_FIELD`, `E_BAD_TYPE`, `E_BAD_VALUE`,
+   `E_OUTPUT_LIMIT`, `E_CLAIMS_LIMIT`.
 5. **Signature.** Over the literal JSON bytes, namespace `receipt`, against the
    keys in `allowed_signers` → `E_BAD_SIGNATURE`, `E_NO_PRINCIPAL`,
    `E_BAD_ALLOWED_SIGNERS`.
@@ -254,6 +261,7 @@ Stable strings, printed as `error: <CODE>: <message>` on stderr.
 | `E_BAD_TYPE` | wrong JSON type, float, or null | 2 |
 | `E_BAD_VALUE` | value violates its pattern or range | 2 |
 | `E_CLAIMS_LIMIT` | claims exceed count, size, or shape limits | 2 |
+| `E_OUTPUT_LIMIT` | `output` exceeds 4096 bytes | 2 (receipt) / 3 (signer file) |
 | `E_BAD_SIGNATURE` | signature armor is malformed | 2 |
 | `E_NO_PRINCIPAL` | no principal in `allowed_signers` accepts the signature | 2 |
 | `E_WRONG_REPO` | `repo` does not match the expected repository | 2 |
@@ -283,7 +291,7 @@ receipt was found and rejected, except `E_NO_BLOCK`, which means none was found.
 outboard sign   --job <name> --commit <sha> --result pass|fail
                 --evidence-dir <dir> --key <path>
                 [--repo <owner/name>] [--claims k=v ...]
-                [--allow-dirty] [--out <file>]
+                [--output-file <file>] [--allow-dirty] [--out <file>]
 
 outboard verify --block <file> --allowed-signers <file>
                 --repo <owner/name> --commit <sha> --expect-job <name>
@@ -305,6 +313,10 @@ outboard verify --block <file> --allowed-signers <file>
 - Arrays are accepted only as a JSON array literal of allowed scalars.
 - The assembled object must satisfy §1.2.1, or the signer exits 3 with
   `E_CLAIMS_LIMIT`.
+- `--output-file` carries a curated excerpt of what the check printed, at most
+  4096 bytes. It emits `receipt/v2`; without it the receipt stays `receipt/v1`.
+  The evidence directory is still never uploaded; the operator decides what the
+  excerpt contains.
 - Refuses a dirty worktree with `E_DIRTY_WORKTREE` unless `--allow-dirty`. Even
   then, the receipt binds a commit, so a dirty tree only helps for local
   experiment.
@@ -450,6 +462,9 @@ the merge stays blocked, which is the fail-closed result.
   and every claim value are rendered inside a fenced code block, with `@`, `[`,
   `]`, `<`, `>`, and backticks escaped. A claim can never become a link or a
   mention.
+- When the receipt verifies, a v2 `output` is rendered in `output.text` as an
+  HTML-escaped `<details><pre>` block, so it appears folded and cannot inject
+  Markdown or mentions.
 - A new check run is created per verification. The newest one wins for branch
   protection; older ones remain visible in the Checks tab.
 - The check name is public API. Changing it silently changes what branch
@@ -466,7 +481,8 @@ the merge stays blocked, which is the fail-closed result.
 - Create only when no such comment exists. Never delete or edit another actor's
   comments.
 - The body is a fixed template plus one fenced code block for the dynamic
-  values, escaped as in §6.6, so a claim cannot mention or link.
+  values, escaped as in §6.6, so a claim cannot mention or link. A v2 `output`
+  follows in the same folded `<details><pre>` block as the check.
 - The body shows: state, job, short commit, `issued_at`, the error code when
   unverified, and the same text as the step summary. No machine identity.
 - Callers should set `concurrency` per PR so two runs do not race the same
@@ -555,9 +571,11 @@ A receipt is an attestation by a key holder. It is not a proof of correctness.
 ## 9. Versioning
 
 - `schema` is the compatibility boundary. A v1 verifier accepts only
-  `receipt/v1`.
-- Adding, removing, or renaming a field, or changing any semantics, produces a
-  new schema version. There is no tolerant parsing.
+  `receipt/v1`; a v2 verifier accepts both.
+- v2 adds one optional field, `output`, and changes nothing else. Signing with
+  `--output-file` emits v2; signing without it keeps emitting v1.
+- Adding, removing, or renaming any other field, or changing any semantics,
+  produces a new schema version. There is no tolerant parsing.
 - `tool` is informational and never affects verification.
 - v0.1 verifiers must keep accepting `receipt/v1` for the life of the 0.x and
   1.x lines.

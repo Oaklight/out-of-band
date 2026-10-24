@@ -13,7 +13,10 @@ from typing import Any
 
 from .errors import OutboardError
 
-SCHEMA = "receipt/v1"
+SCHEMA_V1 = "receipt/v1"
+SCHEMA_V2 = "receipt/v2"
+SCHEMA = SCHEMA_V1
+MAX_OUTPUT_BYTES = 4096
 MAX_BLOCK_BYTES = 16 * 1024
 MAX_CLAIMS_BYTES = 2048
 MAX_CLAIM_STRING = 256
@@ -28,7 +31,7 @@ TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 TOOL_RE = re.compile(r"^outboard/\d+\.\d+\.\d+$")
 DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-FIELDS = (
+BASE_FIELDS = (
     "schema",
     "repo",
     "commit",
@@ -38,8 +41,9 @@ FIELDS = (
     "issued_at",
     "tool",
     "evidence",
-    "claims",
 )
+FIELDS_V1 = (*BASE_FIELDS, "claims")
+FIELDS_V2 = (*BASE_FIELDS, "output", "claims")
 
 
 def build(
@@ -54,9 +58,10 @@ def build(
     count: int,
     digest: str,
     claims: dict[str, Any] | None = None,
+    output: str | None = None,
 ) -> dict[str, Any]:
     receipt: dict[str, Any] = {
-        "schema": SCHEMA,
+        "schema": SCHEMA_V2 if output is not None else SCHEMA_V1,
         "repo": repo,
         "commit": commit,
         "tree": tree,
@@ -65,8 +70,10 @@ def build(
         "issued_at": issued_at,
         "tool": tool,
         "evidence": {"count": count, "digest": digest},
-        "claims": claims or {},
     }
+    if output is not None:
+        receipt["output"] = output
+    receipt["claims"] = claims or {}
     return receipt
 
 
@@ -126,15 +133,18 @@ def validate(receipt: Any) -> None:
     if not isinstance(receipt, dict):
         raise _bad("E_BAD_JSON", "receipt must be a JSON object")
 
-    unknown = set(receipt) - set(FIELDS)
+    schema = receipt.get("schema")
+    if schema not in (SCHEMA_V1, SCHEMA_V2):
+        raise _bad("E_BAD_SCHEMA", "schema must be receipt/v1 or receipt/v2")
+    allowed = FIELDS_V2 if schema == SCHEMA_V2 else FIELDS_V1
+
+    unknown = set(receipt) - set(allowed)
     if unknown:
         raise _bad("E_UNKNOWN_FIELD", f"unknown field(s): {', '.join(sorted(unknown))}")
-    missing = set(FIELDS) - set(receipt)
+    required = set(allowed) - ({"output"} if schema == SCHEMA_V2 else set())
+    missing = required - set(receipt)
     if missing:
         raise _bad("E_BAD_TYPE", f"missing field(s): {', '.join(sorted(missing))}")
-
-    if receipt["schema"] != SCHEMA:
-        raise _bad("E_BAD_SCHEMA", f"schema must be {SCHEMA!r}")
     for name in ("repo", "commit", "tree", "job", "result", "issued_at", "tool"):
         if not isinstance(receipt[name], str):
             raise _bad("E_BAD_TYPE", f"{name} must be a string")
@@ -168,6 +178,15 @@ def validate(receipt: Any) -> None:
         raise _bad("E_BAD_VALUE", "evidence.count must be an integer in 0..1000000")
     if not isinstance(evidence["digest"], str) or not DIGEST_RE.match(evidence["digest"]):
         raise _bad("E_BAD_VALUE", "evidence.digest must be sha256:<64 hex>")
+
+    if "output" in receipt:
+        output = receipt["output"]
+        if not isinstance(output, str):
+            raise _bad("E_BAD_TYPE", "output must be a string")
+        if len(output.encode("utf-8")) > MAX_OUTPUT_BYTES:
+            raise _bad("E_OUTPUT_LIMIT", f"output exceeds {MAX_OUTPUT_BYTES} bytes")
+        if "\x00" in output or any(ord(ch) < 32 and ch not in "\n\t" for ch in output):
+            raise _bad("E_BAD_VALUE", "output contains a control character")
 
     claims = receipt["claims"]
     if not isinstance(claims, dict):

@@ -179,3 +179,35 @@ def test_short_commit_is_rejected(
     with pytest.raises(OutboardError) as caught:
         sign_block(repo, keypair, evidence, commit="abc1234")
     assert caught.value.code == "E_USAGE"
+
+
+def test_output_file_makes_a_v2_receipt(
+    repo: Path, keypair: Path, evidence: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(repo)
+    output = tmp_path / "output.txt"
+    output.write_text("check started\nall good\n", encoding="utf-8")
+    payload, _ = extract(sign_block(repo, keypair, evidence, output_file=str(output)))
+    receipt = json.loads(payload)
+    assert receipt["schema"] == "receipt/v2"
+    assert receipt["output"] == "check started\nall good\n"
+
+
+def test_without_output_the_receipt_stays_v1(
+    repo: Path, keypair: Path, evidence: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(repo)
+    payload, _ = extract(sign_block(repo, keypair, evidence))
+    assert json.loads(payload)["schema"] == "receipt/v1"
+
+
+def test_oversized_output_is_refused(
+    repo: Path, keypair: Path, evidence: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(repo)
+    output = tmp_path / "big.txt"
+    output.write_text("x" * 5000, encoding="utf-8")
+    with pytest.raises(OutboardError) as caught:
+        sign_block(repo, keypair, evidence, output_file=str(output))
+    assert caught.value.code == "E_OUTPUT_LIMIT"
+    assert caught.value.exit_code == 3
