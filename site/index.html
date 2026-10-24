@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>outboard — a guided tour</title>
+<meta name="description" content="A guided tour of out-of-band CI receipts: a job runs on hardware GitHub cannot reach, signs a claim, and GitHub publishes a check run.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6feb'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#top">outboard</a>
+  <nav>
+    <a href="#tour" data-i18n="navTour"></a>
+    <a href="#scenarios" data-i18n="navScenarios"></a>
+    <a href="#states" data-i18n="navStates"></a>
+    <a href="https://github.com/Oaklight/outboard">GitHub</a>
+    <button id="lang" class="lang" type="button" aria-label="Switch language">中文</button>
+  </nav>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <p class="kicker" data-i18n="kicker"></p>
+    <h1 data-i18n="title"></h1>
+    <p class="lede" data-i18n="lede"></p>
+    <div class="actors" id="actors"></div>
+    <p class="sim" data-i18n="simulation"></p>
+  </section>
+
+  <section id="tour" class="tour">
+    <div class="section-head">
+      <h2 data-i18n="tourTitle"></h2>
+      <p data-i18n="tourLede"></p>
+    </div>
+    <div class="tabs" id="scenario-tabs" role="tablist"></div>
+    <div class="stepper" id="stepper" role="tablist"></div>
+    <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+    <div class="stage">
+      <article class="pane github">
+        <div class="pane-head"><span class="dot"></span><span data-i18n="paneGithub"></span></div>
+        <div class="pane-body" id="github-pane"></div>
+      </article>
+      <article class="pane machine">
+        <div class="pane-head"><span class="dot"></span><span data-i18n="paneMachine"></span></div>
+        <div class="pane-body" id="machine-pane"></div>
+      </article>
+    </div>
+    <div class="caption" aria-live="polite">
+      <h3 id="step-title"></h3>
+      <p id="step-body"></p>
+    </div>
+    <div class="controls">
+      <button id="prev" class="btn" type="button"></button>
+      <span id="counter" class="counter" aria-live="polite"></span>
+      <button id="next" class="btn primary" type="button"></button>
+    </div>
+  </section>
+
+  <section id="scenarios" class="variants">
+    <div class="section-head">
+      <h2 data-i18n="variantsTitle"></h2>
+      <p data-i18n="variantsLede"></p>
+    </div>
+    <div class="cards" id="variants"></div>
+  </section>
+
+  <section id="states" class="states">
+    <div class="section-head">
+      <h2 data-i18n="statesTitle"></h2>
+      <p data-i18n="statesLede"></p>
+    </div>
+    <div class="state-grid" id="state-grid"></div>
+  </section>
+
+  <section class="adopt">
+    <div class="section-head">
+      <h2 data-i18n="adoptTitle"></h2>
+      <p data-i18n="adoptLede"></p>
+    </div>
+    <ol class="adopt-list" id="adopt"></ol>
+  </section>
+</main>
+
+<footer>
+  <span>outboard</span>
+  <a href="https://github.com/Oaklight/outboard">GitHub</a>
+  <a href="https://github.com/Oaklight/outboard/tree/main/docs" data-i18n="footerDocs"></a>
+  <a href="https://github.com/Oaklight/outboard/releases" data-i18n="footerRelease"></a>
+</footer>
+
+<noscript>
+  <p class="noscript">This tour needs JavaScript. The same material, as text, is in
+  <a href="https://github.com/Oaklight/outboard/tree/main/docs">docs/</a>.</p>
+</noscript>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -9,6 +9,8 @@ publish a check run.
 
 Pick the page that matches what you are doing.
 
+Prefer a visual walkthrough? [Take the guided tour](https://oaklight.github.io/outboard/).
+
 | If you want to | Read |
 | --- | --- |
 | Block a PR until a patch has been tested | [Patch gate](scenario-patch-gate.md) |
