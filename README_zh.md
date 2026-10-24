@@ -153,6 +153,18 @@ jobs:
 
 `uses:` 用完整 commit SHA 固定，tag 是可以被挪动的。
 
+### 上传证据
+
+`evidence-url` 留空就维持现状：回执只绑定摘要，不上传任何东西。
+
+把它设成 `outboard pack` 生成的包的 HTTPS 地址，workflow 会下载、安全解包、
+重算摘要并比对，一致才作为 `outboard-evidence` artifact 上传；对不上则判为
+unverified。
+
+```bash
+outboard pack --evidence-dir ./evidence --out evidence.tgz
+```
+
 ### 回执从哪来
 
 - 传了 `receipt` 输入就用它，适合 `workflow_dispatch`。

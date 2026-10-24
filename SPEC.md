@@ -262,6 +262,8 @@ Stable strings, printed as `error: <CODE>: <message>` on stderr.
 | `E_BAD_VALUE` | value violates its pattern or range | 2 |
 | `E_CLAIMS_LIMIT` | claims exceed count, size, or shape limits | 2 |
 | `E_OUTPUT_LIMIT` | `output` exceeds 4096 bytes | 2 (receipt) / 3 (signer file) |
+| `E_EVIDENCE_ARCHIVE` | evidence archive is unsafe or unreadable | 2 |
+| `E_EVIDENCE_MISMATCH` | uploaded evidence does not match the signed digest | 2 |
 | `E_BAD_SIGNATURE` | signature armor is malformed | 2 |
 | `E_NO_PRINCIPAL` | no principal in `allowed_signers` accepts the signature | 2 |
 | `E_WRONG_REPO` | `repo` does not match the expected repository | 2 |
@@ -293,6 +295,8 @@ outboard sign   --job <name> --commit <sha> --result pass|fail
                 [--repo <owner/name>] [--claims k=v ...]
                 [--output-file <file>] [--allow-dirty] [--out <file>]
 
+outboard pack   --evidence-dir <dir> --out <file> [--json]
+
 outboard verify --block <file> --allowed-signers <file>
                 --repo <owner/name> --commit <sha> --expect-job <name>
                 [--expect-tree <sha>] [--json]
@@ -322,6 +326,13 @@ outboard verify --block <file> --allowed-signers <file>
   experiment.
 - Writes the block to stdout, or to `--out`.
 - No network access, no GitHub credential, no machine identity.
+
+### 5.1a `pack`
+
+Writes the evidence directory to a deterministic `.tar.gz` (sorted entries,
+zeroed mtime/uid/gid) and prints the file count and digest. The unpacked tree
+reproduces the signed digest, which is what lets a consumer verify an uploaded
+bundle.
 
 ### 5.2 `verify`
 
@@ -373,6 +384,7 @@ File: `.github/workflows/verify.yml`, triggered by `workflow_call` only.
 | `receipt` | string | `""` | receipt text passed directly (dispatch payload); takes precedence over comments |
 | `allowed-signers` | string | `.github/allowed_signers` | path in the caller repository, read from the default branch |
 | `trusted-authors` | string | `""` | comma-separated logins allowed to supply a receipt. Empty means comments whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR` |
+| `evidence-url` | string | `""` | HTTPS URL of a `.tar.gz` evidence bundle. Empty means digest only |
 
 ### 6.2 Permissions
 
@@ -405,7 +417,12 @@ credential.
 4. Treat the receipt as data. Cap its size before parsing. Never interpolate it
    into a shell command.
 5. Set a job timeout of 5 minutes.
-6. On `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so no check can
+6. When `evidence-url` is set and the receipt verified, download the bundle
+   (50 MiB cap), extract it without following links or escaping the directory,
+   recompute the digest, and compare it with the signed `evidence.digest`. A
+   mismatch makes the result unverified (`E_EVIDENCE_MISMATCH`); a matching
+   bundle is uploaded as the `outboard-evidence` artifact.
+7. On `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so no check can
    be published. Fork PRs must be driven by `pull_request_target`,
    `issue_comment`, or `workflow_dispatch` (§6.9).
 
@@ -446,6 +463,7 @@ credential.
 | true | valid, fail | 1 | `failure` | failed |
 | false | any | — | `success` | not applicable — receipt not evaluated |
 | — | — | 3 | none; the job fails | tool error |
+| true | valid | 0/1 but evidence mismatches | `action_required` | unverified — `E_EVIDENCE_MISMATCH` |
 
 When `required` is false the receipt is not evaluated at all. A stale failing
 receipt must not block a PR the policy already classified as not needing one.
@@ -465,6 +483,8 @@ the merge stays blocked, which is the fail-closed result.
 - When the receipt verifies, a v2 `output` is rendered in `output.text` as an
   HTML-escaped `<details><pre>` block, so it appears folded and cannot inject
   Markdown or mentions.
+- A verified evidence bundle is uploaded as the `outboard-evidence` artifact.
+  The summary states `evidence: uploaded`, `digest only`, or `invalid`.
 - A new check run is created per verification. The newest one wins for branch
   protection; older ones remain visible in the Checks tab.
 - The check name is public API. Changing it silently changes what branch

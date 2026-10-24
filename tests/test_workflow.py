@@ -117,7 +117,7 @@ def test_decide_refuses_a_tool_error(monkeypatch: pytest.MonkeyPatch, tmp_path: 
 
 
 def test_summary_cannot_break_the_fence() -> None:
-    text = workflow._summary("verified", "OK", "job```x", "a" * 40, "comments", "")
+    text = workflow._summary("verified", "OK", "job```x", "a" * 40, "comments", "", "digest only")
     assert "```x" not in text
     assert text.count("```") == 2
 
@@ -277,3 +277,88 @@ def test_publish_carries_the_signed_output(tmp_path: Path, monkeypatch: pytest.M
     check = json.loads(next(stdin for args, stdin in calls if "--input" in args and stdin))
     assert "<details>" in check["output"]["text"]
     assert "&lt;script&gt;" in check["output"]["text"]
+
+
+def test_evidence_round_trip(tmp_path: Path, keypair: Path) -> None:
+    source = tmp_path / "evidence"
+    (source / "nested").mkdir(parents=True)
+    (source / "run.log").write_text("ok\n", encoding="utf-8")
+    (source / "nested" / "result.json").write_text("{}", encoding="utf-8")
+
+    from outboard.evidence import digest_directory, pack_directory
+
+    count, digest = digest_directory(source)
+    assert count == 2
+    archive = tmp_path / "evidence.tgz"
+    assert pack_directory(source, archive) == (count, digest)
+
+    receipt = tmp_path / "receipt.md"
+    payload = json.dumps(
+        {"schema": "receipt/v2", "evidence": {"count": count, "digest": digest}},
+        separators=(",", ":"),
+    )
+    receipt.write_text(
+        f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\nAAA\n```\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "unpacked"
+    assert workflow.evidence(str(receipt), str(archive), str(out)) == 0
+    assert (out / "nested" / "result.json").read_text() == "{}"
+
+
+def test_evidence_mismatch_is_rejected(tmp_path: Path, keypair: Path) -> None:
+    from outboard.evidence import pack_directory
+
+    source = tmp_path / "evidence"
+    source.mkdir()
+    (source / "run.log").write_text("ok\n", encoding="utf-8")
+    archive = tmp_path / "evidence.tgz"
+    pack_directory(source, archive)
+
+    receipt = tmp_path / "receipt.md"
+    payload = json.dumps(
+        {"schema": "receipt/v1", "evidence": {"count": 1, "digest": "sha256:" + "0" * 64}},
+        separators=(",", ":"),
+    )
+    receipt.write_text(
+        f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\nAAA\n```\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(OutboardError) as caught:
+        workflow.evidence(str(receipt), str(archive), str(tmp_path / "out"))
+    assert caught.value.code == "E_EVIDENCE_MISMATCH"
+
+
+def test_evidence_archive_cannot_escape(tmp_path: Path) -> None:
+    import io
+    import tarfile
+
+    archive = tmp_path / "evil.tgz"
+    with tarfile.open(archive, "w:gz") as tar:
+        info = tarfile.TarInfo("../escape")
+        info.size = 1
+        tar.addfile(info, io.BytesIO(b"x"))
+    receipt = tmp_path / "receipt.md"
+    payload = json.dumps(
+        {"schema": "receipt/v1", "evidence": {"count": 1, "digest": "sha256:" + "0" * 64}},
+        separators=(",", ":"),
+    )
+    receipt.write_text(
+        f"<!-- receipt:v1 -->\n```json\n{payload}\n```\n```ssh-signature\nAAA\n```\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(OutboardError) as caught:
+        workflow.evidence(str(receipt), str(archive), str(tmp_path / "out"))
+    assert caught.value.code == "E_EVIDENCE_ARCHIVE"
+
+
+def test_decide_rejects_mismatched_evidence(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("RUNNER_TEMP", str(tmp_path))
+    monkeypatch.setenv("REQUIRED", "true")
+    monkeypatch.setenv("FOUND", "true")
+    monkeypatch.setenv("VERIFY_EXIT", "0")
+    monkeypatch.setenv("EVIDENCE_STATUS", "invalid")
+    (tmp_path / "verdict.json").write_text('{"code":"OK"}')
+    assert workflow._decide() == ("unverified", "E_EVIDENCE_MISMATCH", "action_required", False)
