@@ -1,6 +1,6 @@
 # Prior art and alternatives
 
-[English](prior-art.md) | [中文](prior-art.zh.md)
+[English](prior-art.md) | [中文](../zh/prior-art.md)
 
 Outboard sits in a narrow gap. These tools solve adjacent problems, and several
 of them are a better choice when their conditions hold.

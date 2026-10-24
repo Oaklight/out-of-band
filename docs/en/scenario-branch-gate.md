@@ -1,6 +1,6 @@
 # Scenario: attest pushes, without a PR
 
-[English](scenario-branch-gate.md) | [中文](scenario-branch-gate.zh.md)
+[English](scenario-branch-gate.md) | [中文](../zh/scenario-branch-gate.md)
 
 Some repositories deploy straight from a branch, or hold artifacts that no pull
 request touches: models, firmware images, datasets. You still want a signed

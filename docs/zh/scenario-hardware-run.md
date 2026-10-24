@@ -1,6 +1,6 @@
 # 场景：记录一次 benchmark 或模型运行
 
-[English](scenario-hardware-run.md) | [中文](scenario-hardware-run.zh.md)
+[English](../en/scenario-hardware-run.md) | [中文](scenario-hardware-run.md)
 
 运行发生在 GitHub 够不着的机器上：租来的 V100、实验室服务器、集群。你希望结果挂在某个 commit 上，半年后回来看还能看懂。
 
@@ -8,9 +8,9 @@
 
 check run 属于 commit，不属于分支、release 或某个人。所以第一步是决定为哪个 commit 背书。
 
-- 正在评审的 PR：head commit，接法同[补丁门禁](scenario-patch-gate.zh.md)。
+- 正在评审的 PR：head commit，接法同[补丁门禁](scenario-patch-gate.md)。
 - release 或 tag：tag 指向的 commit。这类没有 PR 可评论，用 dispatch 提交。
-- 长期分支：推送后的那个 commit，事后补交，见[分支门禁](scenario-branch-gate.zh.md)。
+- 长期分支：推送后的那个 commit，事后补交，见[分支门禁](scenario-branch-gate.md)。
 
 ## 签名
 

@@ -1,6 +1,6 @@
 # 场景：不经过 PR，为推送背书
 
-[English](scenario-branch-gate.md) | [中文](scenario-branch-gate.zh.md)
+[English](../en/scenario-branch-gate.md) | [中文](scenario-branch-gate.md)
 
 有些仓库直接从分支部署，或者存放不走 PR 的产物：模型、固件、数据集。你仍然想对确切的 commit 留一份签名声明。
 
@@ -10,7 +10,7 @@
 
 - **提示性**：照常发布 check，让大家看见；
 - **事后补**：推送先落地，操作员再手动触发验证，check 在那个 commit 上变绿；
-- **真正拦住**：要求走 PR（自己给自己批也行），用[补丁门禁](scenario-patch-gate.zh.md)。
+- **真正拦住**：要求走 PR（自己给自己批也行），用[补丁门禁](scenario-patch-gate.md)。
 
 选哪个要想清楚。把提示性的 check 说成"强制"，比没有还糟。
 

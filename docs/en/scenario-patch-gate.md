@@ -1,6 +1,6 @@
 # Scenario: test a patch before it merges
 
-[English](scenario-patch-gate.md) | [中文](scenario-patch-gate.zh.md)
+[English](scenario-patch-gate.md) | [中文](../zh/scenario-patch-gate.md)
 
 You have a `patches/` directory (or `src/`, or a firmware tree) whose changes
 must be smoke-tested on real hardware. CI cannot run that test, so a person

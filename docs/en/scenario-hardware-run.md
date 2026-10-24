@@ -1,6 +1,6 @@
 # Scenario: record a benchmark or model run
 
-[English](scenario-hardware-run.md) | [中文](scenario-hardware-run.zh.md)
+[English](scenario-hardware-run.md) | [中文](../zh/scenario-hardware-run.md)
 
 A run happened on a machine GitHub cannot reach: a rented V100, a lab server, a
 cluster. You want the result attached to a commit with enough detail to be
