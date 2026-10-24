@@ -32,7 +32,7 @@ A receipt is an HTML comment marker followed by exactly two fenced blocks:
 ````text
 <!-- receipt:v1 -->
 ```json
-{"schema":"receipt/v1","repo":"OWNER/NAME","commit":"<40 hex>","tree":"<40 hex>","job":"smoke","result":"pass","issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.0","evidence":{"count":7,"digest":"sha256:<64 hex>"},"claims":{"device_count":2}}
+{"schema":"receipt/v1","repo":"OWNER/NAME","commit":"<40 hex>","tree":"<40 hex>","job":"smoke","result":"pass","issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.1","evidence":{"count":7,"digest":"sha256:<64 hex>"},"claims":{"device_count":2}}
 ```
 ```ssh-signature
 -----BEGIN SSH SIGNATURE-----

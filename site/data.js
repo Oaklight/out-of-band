@@ -498,7 +498,7 @@ const SCENARIOS = [
               "```json\n" +
               '{"schema":"receipt/v2","repo":"you/repo","commit":"6e5b8a4...",\n' +
               ' "tree":"f0c1...","job":"patch-smoke","result":"pass",\n' +
-              ' "issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.0",\n' +
+              ' "issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.1",\n' +
               ' "evidence":{"count":1,"digest":"sha256:7b6f..."},\n' +
               ' "output":"[ok] driver 550.54\\n[ok] patch applies cleanly\\n..."}\n' +
               "```\n" +

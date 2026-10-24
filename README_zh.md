@@ -162,7 +162,7 @@ jobs:
 
   verified:
     needs: policy
-    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.0
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.1
     with:
       pr: ${{ needs.policy.outputs.pr }}
       commit: ${{ needs.policy.outputs.commit }}
@@ -178,7 +178,7 @@ jobs:
 
 输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`；输出：`verdict`。
 
-`uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.4.0`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
+`uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.4.1`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
 
 ### 上传证据
 
