@@ -17,6 +17,11 @@
 | 签名机没有外网 | [离线机器](offline.zh.md) |
 | 生成、轮换密钥，或排查结论 | [运维](operations.zh.md) |
 | 看自测跑出来的证据 | [验证记录](validation.md) |
+| 和 Sigstore、attestation 以及同类项目的关系 | [先例与替代方案](prior-art.zh.md) |
+
+## 两个译名
+
+`gate` 译作“门禁”：允许或阻止合并的策略。`check` / `check run` 保留英文，或译作“检查”：GitHub 上那个具体的结果。门禁靠 check 落地，但两者不是一回事。
 
 ## 共同的结构
 
