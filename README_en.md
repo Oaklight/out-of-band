@@ -135,7 +135,8 @@ and operations. Start there rather than from the input list below.
 name: receipt gate
 
 on:
-  pull_request:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
 
@@ -146,30 +147,45 @@ permissions:
 
 jobs:
   policy:
+    # A receipt arriving as a comment must trigger a fresh run.
+    if: >
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '<!-- receipt:v1 -->'))
     runs-on: ubuntu-latest
     outputs:
+      pr: ${{ steps.context.outputs.pr }}
+      commit: ${{ steps.context.outputs.commit }}
       requires: ${{ steps.paths.outputs.requires }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+        run: |
+          commit="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)"
+          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
       - id: paths
         env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ steps.context.outputs.pr }}
         run: |
-          if git diff --quiet "$BASE" "$HEAD" -- src/; then
-            echo "requires=false" >> "$GITHUB_OUTPUT"
-          else
+          if gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" \
+               --jq '.[].filename' | grep -qE '^src/'; then
             echo "requires=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "requires=false" >> "$GITHUB_OUTPUT"
           fi
 
   verified:
     needs: policy
-    uses: Oaklight/outboard/.github/workflows/verify.yml@<full commit SHA>
+    uses: Oaklight/outboard/.github/workflows/verify.yml@<full-sha> # v0.3.0
     with:
-      pr: ${{ github.event.pull_request.number || 0 }}
-      commit: ${{ github.event.pull_request.head.sha || github.sha }}
+      pr: ${{ needs.policy.outputs.pr }}
+      commit: ${{ needs.policy.outputs.commit }}
       job: smoke
       required: ${{ needs.policy.outputs.requires == 'true' }}
       check-name: smoke-verified
@@ -179,10 +195,18 @@ jobs:
 Then make `smoke-verified` a required check in branch protection. The check name
 is public API: renaming it silently changes what the branch protects.
 
+The example uses `pull_request_target`, not `pull_request`: it runs the default
+branch's copy, so a PR cannot edit the gate that judges it. It gets a write
+token, including for fork PRs, so never check out or run PR code here. The
+verifier reads `allowed_signers` from the default branch and treats the receipt
+as data. The `policy` job resolves the head through the API so a comment on an
+issue does not fall back to `github.sha`, which is the base branch.
+
 Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
 `allowed-signers`, `trusted-authors`, `evidence-url`. Output: `verdict`.
 
-Pin `uses:` by commit SHA. A tag is mutable.
+Pin `uses:` by full commit SHA and keep the version in a comment
+(`# v0.3.0`); Dependabot can open the bump PR. A tag can be moved.
 
 ### Uploading evidence
 
@@ -214,7 +238,8 @@ outboard pack --evidence-dir ./evidence --out evidence.tgz
 
 `pull_request` from a fork gets a read-only token, so nothing can be published.
 Use `pull_request_target` (default-branch code, no PR checkout) or
-`issue_comment` for forks.
+`issue_comment` for forks. `pull_request` also runs the PR's own copy of the
+workflow, which lets a contributor weaken the gate; avoid it for this job.
 
 ### Credentials
 

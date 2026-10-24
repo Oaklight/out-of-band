@@ -12,7 +12,7 @@
 name: receipt gate
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
@@ -26,7 +26,7 @@ jobs:
   policy:
     # 带标记的评论才重跑，其他评论一概不理。
     if: >
-      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request != null &&
        contains(github.event.comment.body, '<!-- receipt:v1 -->'))
@@ -108,6 +108,33 @@ gh pr comment 5 --body-file receipt.md
 
 `--output-file` 可选，最多 4 KiB，会出现在 check 里可折叠的记录中，评审通常先看这里。别往里面放密钥；check 是公开的。
 
+## workflow 从哪来
+
+`pull_request` 用的是 PR 合并提交里的 workflow 文件。也就是说，贡献者可以修改审判自己的那道门：把 `required` 改掉、用期望的名字发一个绿色 check，或者干脆删掉 job 让必需的 check 永远不出现。分支保护看不出区别。
+
+`pull_request_target` 用的是默认分支上的那份，带写权限，fork PR 也一样。所以上面的例子用它触发。代价是一条必须守住的规则：这个 workflow 里不要 checkout、不要执行 PR 的代码。验证器本来就只从默认分支读 `allowed_signers`，并把回执当数据。
+
+## 固定版本与升级
+
+`uses:` 那一行只在默认分支写一次。普通的 PR 不会碰它。升级是另一件小事、另一个 PR；两个升级 PR 改到同一行时会像普通改动一样冲突，逐个合就行。
+
+ref 有几种选法：
+
+- **完整 commit SHA**（推荐）：不可变。后面加一句 `# v0.3.0` 注释，让工具知道版本，并用 Dependabot 开升级 PR。
+- **release tag**：短一些，但 tag 可以被挪到别的 commit。
+- **默认分支**：永远最新，也永远没人审。门禁不要这么用。
+- **本地拷贝**（`uses: ./.github/workflows/verify.yml`）：没有外部 pin，但验证器和它的升级从此归你维护。
+
+```yaml
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+```
+
 ## 需要你替换什么
 
 workflow 是模板，但真正要你定的只有三处，另有一处可选。`${{ }}` 里的表达式由 GitHub 在运行时求值，不用管。
@@ -143,6 +170,6 @@ workflow 是模板，但真正要你定的只有三处，另有一处可选。`$
 
 ## 注意
 
-- 验证 job 不要 checkout PR head。workflow 故意从默认分支读 `allowed_signers`。
-- fork 来的 PR 在 `pull_request` 下只有只读 token。用上面示范的 `issue_comment`，或者 `pull_request_target`。
+- 这个 workflow 里不要 checkout、也不要执行 PR 的代码。它拿着写权限，fork PR 也一样。
+- fork 来的 PR 在 `pull_request` 下只有只读 token。`pull_request_target` 和 `issue_comment` 都能绕开；例子用前者，这样每次推送都能触发，不必等评论。
 - 证据上传是可选的。需要日志时加 `evidence-url`，见[硬件运行](scenario-hardware-run.zh.md)。
