@@ -182,7 +182,7 @@ outboard pack --evidence-dir ./evidence --out evidence.tgz
 
 ### 离线操作员机器
 
-签名机可以完全没有外网。用 Release 里附带的 wheel 安装，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/offline.md)。
+签名机可以完全没有外网。用 Release 附带的单文件 `outboard.pyz`（或 wheel）运行，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/offline.md)。
 
 ### 保留期
 
