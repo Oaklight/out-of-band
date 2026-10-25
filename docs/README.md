@@ -3,5 +3,5 @@
 - [English](en/README.md)
 - [中文](zh/README.md)
 
-The guides are split by language. Each folder is self-contained; internal links
-stay inside it.
+Each language folder is self-contained. Start with its `README.md`, which maps
+the pages by task. The normative format is in [SPEC.md](../SPEC.md).

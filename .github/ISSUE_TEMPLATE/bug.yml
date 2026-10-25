@@ -1,0 +1,57 @@
+name: Bug report
+description: Something behaved differently from the documentation.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste private keys, tokens, customer data, or unredacted evidence
+        archives. For a security problem, use the private advisory described in
+        SECURITY.md instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The command or workflow, the observed result, and the expected result.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `oob --version`, or the action/workflow ref you used.
+    validations:
+      required: true
+  - type: dropdown
+    id: carrier
+    attributes:
+      label: Where it ran
+      options:
+        - CLI (oob sign / pack / render / verify)
+        - Composite action
+        - Reusable workflow
+        - GitHub Pages site
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The smallest input that shows the problem. Redact secrets and paths.
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Step summary, error code, or check-run output. Redact secrets.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I removed private keys, tokens, and private data from the report.
+          required: true
+        - label: I checked the open issues for the same problem.
+          required: true

@@ -12,7 +12,7 @@ hostname, address, username, or device identifier appears in this document.
 ## What was tested
 
 | Check | Result |
-|---|---|
+| --- | --- |
 | `oob sign` inside an empty network namespace (`unshare -n`) | exit 0, valid block |
 | `ssh-keygen -Y verify` of the literal payload, offline | exit 0 |
 | GitHub credential on the host | none: no `gh` config, no `GH_TOKEN`/`GITHUB_TOKEN` in the environment |
@@ -75,4 +75,8 @@ credential: signing is local, and verification is local.
 It does not prove the host is otherwise locked down. The host may run unrelated
 services with their own listeners; this test shows the receipt flow adds no
 requirement for one. Delivering the receipt to GitHub needs one outbound HTTPS
-request, or none at all when the operator pastes the block into the PR by hand.
+request, or none at all when the operator pastes the block into the pull
+request by hand.
+
+See [Trust](concepts/trust.md) for what a receipt proves, and
+[Air-gapped hosts](guides/air-gapped.md) for the transport procedures.

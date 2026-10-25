@@ -7,9 +7,9 @@ const UI = {
     navStates: "States",
     navFaq: "Why not…",
     kicker: "Out-of-band CI receipts",
-    title: "Prove the test ran, when GitHub cannot run it.",
+    title: "Prove the test ran, wherever it ran.",
     lede:
-      "A job runs on hardware GitHub cannot reach. The machine signs one line of JSON. GitHub verifies the signature and turns the verdict into a check run. No inbound access, and no GitHub credential on the machine.",
+      "Some jobs GitHub cannot run: the hardware, the network, or the data is somewhere else. Others already ran on your own machine. In both cases the machine signs one line of JSON, GitHub verifies the signature, and the verdict becomes a check run. No inbound access, and no GitHub credential on the signing machine.",
     simulation:
       "This page is a simulation: the pull request and its checks are mock-ups.",
     tourTitle: "Follow one receipt from a pull request to a green check",
@@ -22,7 +22,7 @@ const UI = {
     counter: "Step {n} of {m}",
     variantsTitle: "The other shapes",
     variantsLede:
-      "The tour covers three. These are the rest, with the full procedures in the repository.",
+      "The tour covers four. These are the rest, with the full procedures in the repository.",
     statesTitle: "Four states, never collapsed",
     statesLede:
       "Turning “I could not tell” into “pass” is worse than having no gate, so these states stay separate.",
@@ -31,28 +31,16 @@ const UI = {
       "Five steps, in order. The guides in docs/ carry the exact commands.",
     adoptNote:
       "You write the workflow once. A new pull request needs a receipt, not a workflow edit. Changing the pinned SHA is an upgrade you choose, not part of every PR.",
-    limitsTitle: "When GitHub does not run the test",
-    limitsLede: "Usually one of these.",
+    limitsTitle: "Two reasons a check needs a receipt",
+    limitsLede: "The mechanism is the same; only the reason differs.",
     limits: [
       {
-        title: "No runner has the hardware",
-        text: "An accelerator, a capture card, a licensed toolchain, a particular OS image.",
+        title: "GitHub cannot run the job",
+        text: "No runner has the accelerator, the device, the licensed toolchain, or the OS image. The machine may sit behind a firewall, on a scheduler, or hold data that cannot leave. A self-hosted runner is often disproportionate or forbidden.",
       },
       {
-        title: "No route in or out",
-        text: "Behind a firewall, or a site that forbids agents and outbound polling.",
-      },
-      {
-        title: "The data cannot leave",
-        text: "The test needs data that is not allowed to reach a hosted runner.",
-      },
-      {
-        title: "It is not a CI machine",
-        text: "An hourly rental, or a login node with a scheduler. A runner there is disproportionate or forbidden.",
-      },
-      {
-        title: "You already ran it",
-        text: "Re-running on a runner is slow, flaky, or gives a different number. Sign the run you have.",
+        title: "The job already ran somewhere else",
+        text: "You ran it on a workstation, a laptop, or a rented box. Re-running in CI is slow, flaky, or returns a different number. Sign the run you have instead of reproducing it.",
       },
     ],
     faqTitle: "Why not just…",
@@ -67,7 +55,7 @@ const UI = {
       },
       {
         q: "…just run the test in CI?",
-        a: "If a hosted runner can run it, do that. Out-of-band is the fallback.",
+        a: "If a hosted runner can run it, do that. Out-of-band is for the job that cannot move, and for the run that already happened somewhere else.",
       },
       {
         q: "…approve it by hand with a comment?",
@@ -75,7 +63,7 @@ const UI = {
       },
       {
         q: "…upload the log somewhere and link it?",
-        a: "Anyone can upload anything, and a link proves nothing about the commit. Evidence upload is optional here; when it is used, the bundle is re-hashed against the signed digest before it is kept.",
+        a: "Anyone can upload anything, and a link proves nothing about the commit. Evidence is required by default here: the bundle is re-hashed against the signed digest before it is kept. Setting require-evidence to false accepts the signed digest alone.",
       },
       {
         q: "…use Sigstore or GitHub's artifact attestations?",
@@ -128,9 +116,9 @@ const UI = {
     navStates: "状态",
     navFaq: "为什么不用…",
     kicker: "带外 CI 回执",
-    title: "GitHub 跑不了的测试，也能证明它跑过。",
+    title: "测试在哪跑的，都能证明它跑过。",
     lede:
-      "任务跑在 GitHub 够不着的机器上。机器对一行 JSON 签名，GitHub 验签，再把结论变成 check run。不需要入站访问，机器上也不需要 GitHub 凭据。",
+      "有些任务 GitHub 跑不了：硬件、网络或数据在别处。有些则已经在自己的机器上跑过。两种情况下，机器都只对一行 JSON 签名，GitHub 验签，再把结论变成 check run。签名机不需要被访问，也不需要 GitHub 凭据。",
     simulation: "这一页是模拟的：PR 和 check 都是假的。",
     tourTitle: "跟着一份回执，从 PR 走到绿色的 check",
     tourLede:
@@ -141,7 +129,7 @@ const UI = {
     next: "下一步",
     counter: "第 {n} 步，共 {m} 步",
     variantsTitle: "其他几种形态",
-    variantsLede: "导览覆盖了三种。这里是剩下的，完整步骤在仓库的文档里。",
+    variantsLede: "导览覆盖了四种。这里是剩下的，完整步骤在仓库的文档里。",
     statesTitle: "四种状态，别混为一谈",
     statesLede:
       "把“判断不了”说成“通过”，比没有门禁更糟，所以这几种状态始终分开。",
@@ -149,28 +137,16 @@ const UI = {
     adoptLede: "五步，按顺序来。具体命令在 docs/ 里。",
     adoptNote:
       "workflow 只写一次。之后每个 PR 需要的是回执，不是改 workflow。改固定的 SHA 是一次你主动决定的小升级，不是每个 PR 的例行公事。",
-    limitsTitle: "什么情况下 GitHub 不跑这个测试",
-    limitsLede: "通常是下面几种情况之一。",
+    limitsTitle: "两种需要回执的理由",
+    limitsLede: "机制一样，只是理由不同。",
     limits: [
       {
-        title: "没有 runner 具备那套硬件",
-        text: "加速卡、采集卡、带 license 的工具链、某个特定的系统镜像。",
+        title: "GitHub 跑不了这个任务",
+        text: "没有 runner 具备那张卡、那台设备、那套带 license 的工具链或那个系统镜像。机器可能在防火墙后面、在调度器上，或者数据不允许离开。装自托管 runner 往往小题大做，或者根本不被允许。",
       },
       {
-        title: "进不来，也出不去",
-        text: "机器在防火墙后面，或者站点禁止装 agent、禁止向外轮询。",
-      },
-      {
-        title: "数据不能离开",
-        text: "测试要用的数据不允许出现在托管 runner 上。",
-      },
-      {
-        title: "它根本不是 CI 机器",
-        text: "按小时租的卡，或者带调度器的登录节点。在上面装 runner 要么小题大做，要么不被允许。",
-      },
-      {
-        title: "你已经跑过了",
-        text: "放到 runner 上重跑，可能更慢、更不稳定，数字也可能不一样。直接签手上这次。",
+        title: "任务已经在别处跑过",
+        text: "你在工作站、笔记本或租来的机器上跑完了。放到 CI 重跑可能更慢、更不稳定，数字也可能不一样。直接签手上这次，不用复现。",
       },
     ],
     faqTitle: "那为什么不直接用……",
@@ -193,7 +169,7 @@ const UI = {
       },
       {
         q: "……把日志传到某个地方，贴个链接？",
-        a: "谁都能上传任何东西，一个链接也证明不了它和 commit 的关系。这里的证据上传是可选的；用了的话，会按签名 digest 重新校验，对不上就不保留。",
+        a: "谁都能上传任何东西，一个链接也证明不了它和 commit 的关系。这里默认要求证据：归档会按签名 digest 重新校验，对不上就不保留。设 require-evidence 为 false，可以只接受签名 digest。",
       },
       {
         q: "……用 Sigstore 或 GitHub 的 artifact attestation？",
@@ -317,7 +293,7 @@ const SCENARIOS = [
         nav: { en: "The rule", zh: "规则" },
         title: {
           en: "Two jobs: decide, then verify.",
-          zh: "两条 job：先判断，再验证。",
+          zh: "两个 job：先判断，再验证。",
         },
         body: {
           en: "The repository owns the policy. <code>policy</code> decides whether this diff touches the paths that need proof. <code>verified</code> calls the shared verifier, pinned by commit SHA. The verifier reads <code>allowed_signers</code> from the default branch, so a pull request cannot vouch for itself.",
@@ -485,20 +461,23 @@ const SCENARIOS = [
               { k: "cmd", text: "    --commit 6e5b8a4 --result pass \\" },
               { k: "cmd", text: "    --evidence-dir ~/runs/5/evidence \\" },
               { k: "cmd", text: "    --key ~/.ssh/out-of-band --repo you/repo \\" },
+              { k: "cmd", text: "    --claims evidence_url=https://.../evidence.tgz \\" },
               { k: "cmd", text: "    --output-file ~/runs/5/summary.txt \\" },
               { k: "cmd", text: "    --out receipt.md" },
-              { k: "ok", text: "wrote receipt.md" },
+              { k: "cmd", text: "$ oob pack --evidence-dir ~/runs/5/evidence \\" },
+              { k: "cmd", text: "    --out ~/runs/5/evidence.tgz" },
+              { k: "ok", text: "wrote receipt.md, evidence.tgz" },
             ],
           },
           {
             t: "receipt",
             label: { en: "receipt.md", zh: "receipt.md" },
             text:
-              "<!-- receipt:v2 -->\n" +
+              "<!-- receipt:v1 -->\n" +
               "```json\n" +
               '{"schema":"receipt/v2","repo":"you/repo","commit":"6e5b8a4...",\n' +
               ' "tree":"f0c1...","job":"patch-smoke","result":"pass",\n' +
-              ' "issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.1",\n' +
+              ' "issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.5.0",\n' +
               ' "evidence":{"count":1,"digest":"sha256:7b6f..."},\n' +
               ' "output":"[ok] driver 550.54\\n[ok] patch applies cleanly\\n..."}\n' +
               "```\n" +
@@ -519,8 +498,8 @@ const SCENARIOS = [
           {
             t: "note",
             text: {
-              en: "The excerpt you passed to <code>--output-file</code> is signed too, so it cannot drift from the claim. It appears folded in the check.",
-              zh: "传给 <code>--output-file</code> 的摘录同样被签名，不会和声明脱节。它会折叠显示在 check 里。",
+              en: "The excerpt you passed to <code>--output-file</code> is signed too, so it cannot drift from the claim, and the signed <code>claims.evidence_url</code> tells the verifier where to fetch the archive. Both appear in the check.",
+              zh: "传给 <code>--output-file</code> 的摘录同样被签名，不会和声明脱节；签进回执的 <code>claims.evidence_url</code> 则告诉验证方去哪里取归档。两者都会出现在 check 里。",
             },
           },
         ],
@@ -528,8 +507,8 @@ const SCENARIOS = [
       {
         nav: { en: "Deliver", zh: "交付" },
         title: {
-          en: "Post the block as a comment. That is the whole transport.",
-          zh: "把整块发成评论，传输就完成了。",
+          en: "Post the block as a comment.",
+          zh: "把整块发成评论。",
         },
         body: {
           en: "Any channel works: a PR comment, a dispatch input, a file. The signature covers bytes, so the channel does not need to be trusted. The comment marker makes the workflow re-run; the receipt names the head commit, so a stale comment is ignored rather than deleted.",
@@ -542,7 +521,7 @@ const SCENARIOS = [
             author: "operator",
             time: { en: "just now", zh: "刚刚" },
             body:
-              "<!-- receipt:v2 -->\n" +
+              "<!-- receipt:v1 -->\n" +
               "```json\n" +
               '{"schema":"receipt/v2","repo":"you/repo", "...": "..."}\n' +
               "```\n" +
@@ -588,8 +567,8 @@ const SCENARIOS = [
           zh: "runner 验签，然后发布 check。",
         },
         body: {
-          en: "The workflow re-reads the default branch, verifies the signature, binds repository, commit, tree, and job, and checks the evidence bundle if a URL was given. The verdict becomes a check run, a step summary, and one sticky comment.",
-          zh: "workflow 重新读默认分支，验签，核对仓库、commit、tree 和 job；如果给了证据地址，再校验压缩包。结论会变成 check run、step summary 和一条置顶评论。",
+          en: "The workflow re-reads the default branch, verifies the signature, binds repository, commit, tree, and job, then fetches the evidence archive and compares its digest with the signed value. The verdict becomes a check run, a step summary, and one sticky comment.",
+          zh: "workflow 重新读默认分支，验签，核对仓库、commit、tree 和 job，再取回证据归档，和签名里的摘要比对。结论会变成 check run、step summary 和一条固定评论。",
         },
         github: [
           { t: "event", text: "check_suite · completed" },
@@ -620,7 +599,7 @@ const SCENARIOS = [
               "state: verified\n" +
               "code: OK\n" +
               "source: comments\n" +
-              "evidence: digest only",
+              "evidence: uploaded",
             details: {
               en: "check output",
               zh: "check 输出",
@@ -630,6 +609,10 @@ const SCENARIOS = [
               "[ok] driver 550.54\n" +
               "[ok] patch applies cleanly\n" +
               "[ok] forward pass matches reference",
+          },
+          {
+            t: "artifact",
+            text: { en: "oob-evidence · 198 B", zh: "oob-evidence · 198 B" },
           },
         ],
         machine: [
@@ -957,6 +940,247 @@ const SCENARIOS = [
     ],
   },
   {
+    id: "local",
+    label: { en: "Already ran", zh: "已经跑过" },
+    blurb: {
+      en: "A benchmark you ran on your own machine, with no desire to repeat it.",
+      zh: "在自己机器上跑完的 benchmark，不想再来一遍。",
+    },
+    steps: [
+      {
+        nav: { en: "The run you have", zh: "手上这次运行" },
+        title: {
+          en: "The result is on disk. It is not attached to anything.",
+          zh: "结果就在磁盘上，只是还没挂到任何地方。",
+        },
+        body: {
+          en: "You ran a forty-minute benchmark on your workstation. The pull request is open and the required check is waiting. Re-running it on a hosted runner costs another forty minutes and may not reproduce the number.",
+          zh: "在工作站上跑完了一次四十分钟的 benchmark。PR 开着，必需的 check 在等。放到托管 runner 上重跑，又要四十分钟，数字还未必一样。",
+        },
+        github: [
+          { t: "event", text: "pull_request_target · opened" },
+          {
+            t: "pr",
+            title: { en: "Raise the KV cache limit", zh: "提高 KV cache 上限" },
+            meta: { en: "#8 · main ← perf/kv · 2 files", zh: "#8 · main ← perf/kv · 2 个文件" },
+          },
+          {
+            t: "checks",
+            items: [
+              {
+                name: "bench-verified",
+                state: "missing",
+                text: { en: "required · not run", zh: "必需 · 未运行" },
+              },
+            ],
+          },
+          {
+            t: "note",
+            text: {
+              en: "Nothing has run in CI. The number you want to merge already exists on your desk.",
+              zh: "CI 里什么都没跑。你想用来合并的那个数字，已经在你桌上了。",
+            },
+          },
+        ],
+        machine: [
+          {
+            t: "term",
+            title: { en: "Your workstation", zh: "你的工作站" },
+            lines: [
+              { k: "cmd", text: "$ cat results/summary.txt" },
+              { k: "ok", text: "throughput 1843 tok/s" },
+              { k: "out", text: "memory 71.2 GiB / 80 GiB" },
+              { k: "cmd", text: "$ git rev-parse HEAD" },
+              { k: "ok", text: "6e5b8a482f1baf41c8080b79501294cbf4057987" },
+            ],
+          },
+          {
+            t: "note",
+            text: {
+              en: "The work is done. What is missing is a statement GitHub can verify.",
+              zh: "活已经干完了。缺的是一份 GitHub 能验证的声明。",
+            },
+          },
+        ],
+      },
+      {
+        nav: { en: "Sign it", zh: "签名" },
+        title: {
+          en: "Sign the run you have.",
+          zh: "给手上这次运行签名。",
+        },
+        body: {
+          en: "<code>oob sign</code> hashes <code>results/</code>, binds it to the head commit, and signs one line of JSON with your SSH key. The key stays here and no socket opens.",
+          zh: "<code>oob sign</code> 对 <code>results/</code> 算哈希，绑定 head commit，再用 SSH 私钥对一行 JSON 签名。私钥留在这台机器上，也不开 socket。",
+        },
+        github: [
+          {
+            t: "note",
+            text: { en: "Still nothing here.", zh: "这边仍然什么都没有。" },
+          },
+        ],
+        machine: [
+          {
+            t: "term",
+            title: { en: "Same workstation, still offline", zh: "同一台工作站，仍然离线" },
+            lines: [
+              { k: "cmd", text: "$ oob sign --job bench \\" },
+              { k: "cmd", text: "    --commit 6e5b8a4 --result pass \\" },
+              { k: "cmd", text: "    --evidence-dir results \\" },
+              { k: "cmd", text: "    --key ~/.ssh/out-of-band --repo you/repo \\" },
+              { k: "cmd", text: "    --output-file results/summary.txt \\" },
+              { k: "cmd", text: "    --out receipt.md" },
+              { k: "cmd", text: "$ oob pack --evidence-dir results --out evidence.tgz" },
+              { k: "ok", text: "wrote receipt.md, evidence.tgz" },
+            ],
+          },
+          {
+            t: "receipt",
+            label: { en: "receipt.md", zh: "receipt.md" },
+            text:
+              "<!-- receipt:v1 -->\n" +
+              "```json\n" +
+              '{"schema":"receipt/v2","repo":"you/repo","commit":"6e5b8a4...",\n' +
+              ' "tree":"f0c1...","job":"bench","result":"pass",\n' +
+              ' "issued_at":"2026-10-25T09:12:00Z","tool":"oob/0.5.0",\n' +
+              ' "evidence":{"count":3,"digest":"sha256:7b6f..."},\n' +
+              ' "output":"throughput 1843 tok/s\\nmemory 71.2 GiB / 80 GiB"}\n' +
+              "```\n" +
+              "```ssh-signature\n" +
+              "-----BEGIN SSH SIGNATURE-----\n" +
+              "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg...\n" +
+              "-----END SSH SIGNATURE-----\n" +
+              "```",
+          },
+          {
+            t: "chips",
+            items: [
+              { en: "no network", zh: "不需要网络" },
+              { en: "no GitHub token", zh: "不需要 GitHub token" },
+              { en: "key stays here", zh: "私钥不离开" },
+            ],
+          },
+        ],
+      },
+      {
+        nav: { en: "Deliver", zh: "交付" },
+        title: {
+          en: "Comment the block on the pull request.",
+          zh: "把整块贴到 PR 评论里。",
+        },
+        body: {
+          en: "The marker makes the gate re-run. The receipt names the head commit, so a later push ignores it instead of leaving a stale pass. The evidence archive can travel in the comment as a signed URL, or stay on the runner if an earlier step already has it.",
+          zh: "标记会让门禁重跑。回执写明了 head commit，之后再有推送，旧回执会被忽略，不会留下一个过期的通过。证据归档可以用签名 URL 放进评论，也可以留在 runner 上由前一步交给它。",
+        },
+        github: [
+          { t: "event", text: "issue_comment · created" },
+          {
+            t: "comment",
+            author: "you",
+            time: { en: "just now", zh: "刚刚" },
+            body:
+              "<!-- receipt:v1 -->\n" +
+              "```json\n" +
+              '{"schema":"receipt/v2","repo":"you/repo", "...": "..."}\n' +
+              "```\n" +
+              "```ssh-signature\n" +
+              "-----BEGIN SSH SIGNATURE-----\n" +
+              "U1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAg...\n" +
+              "-----END SSH SIGNATURE-----\n" +
+              "```",
+          },
+          {
+            t: "checks",
+            items: [
+              {
+                name: "bench-verified",
+                state: "pending",
+                text: { en: "queued", zh: "排队中" },
+              },
+            ],
+          },
+        ],
+        machine: [
+          {
+            t: "term",
+            title: { en: "Delivering", zh: "交付" },
+            lines: [
+              { k: "cmd", text: "$ oob render --block receipt.md --out comment.md" },
+              { k: "cmd", text: "$ gh pr comment 8 --body-file comment.md" },
+              { k: "ok", text: "https://github.com/you/repo/pull/8#issuecomment-..." },
+            ],
+          },
+          {
+            t: "note",
+            text: {
+              en: "The renderer only changes how the block looks. The signed bytes stay inside the folded section.",
+              zh: "渲染只改变块的外观。签名的原始字节仍然在折叠区里。",
+            },
+          },
+        ],
+      },
+      {
+        nav: { en: "Verify", zh: "验证" },
+        title: {
+          en: "The gate accepts the run you already did.",
+          zh: "门禁接受你已经跑完的这次运行。",
+        },
+        body: {
+          en: "The workflow verifies the signature against the default branch, checks the commit and job, re-hashes the evidence bundle, and publishes the check. The gate never asks the machine to run anything again.",
+          zh: "workflow 用默认分支验签，核对 commit 和 job，重新计算证据归档的摘要，然后发布 check。门禁不会要求机器再跑一遍。",
+        },
+        github: [
+          { t: "event", text: "check_suite · completed" },
+          {
+            t: "checks",
+            items: [
+              {
+                name: "bench-verified",
+                state: "ok",
+                text: { en: "verified", zh: "verified" },
+              },
+            ],
+          },
+          {
+            t: "summary",
+            title: "oob: verified",
+            body:
+              "job: bench\n" +
+              "commit: 6e5b8a482f1baf41c8080b79501294cbf4057987\n" +
+              "state: verified\n" +
+              "code: OK\n" +
+              "source: comments\n" +
+              "evidence: uploaded",
+            details: { en: "check output", zh: "check 输出" },
+            transcript: "throughput 1843 tok/s\nmemory 71.2 GiB / 80 GiB",
+          },
+          {
+            t: "artifact",
+            text: { en: "oob-evidence · 412 B", zh: "oob-evidence · 412 B" },
+          },
+        ],
+        machine: [
+          {
+            t: "note",
+            text: {
+              en: "Your machine did nothing else. No daemon, no polling, no credential.",
+              zh: "你的机器没再做别的事。没有常驻进程，没有轮询，没有凭据。",
+            },
+          },
+          {
+            t: "checklist",
+            items: [
+              { en: "ran the benchmark once", zh: "只跑了一次 benchmark" },
+              { en: "signed the result", zh: "给结果签了名" },
+              { en: "packed the evidence", zh: "打了证据包" },
+              { en: "opened no socket", zh: "没开任何 socket" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "multi",
     label: { en: "Several jobs", zh: "多个 job" },
     blurb: {
@@ -1029,6 +1253,7 @@ const SCENARIOS = [
               "      commit: ${{ github.event.pull_request.head.sha }}\n" +
               "      job: v100-smoke\n" +
               "      check-name: v100-smoke-verified\n" +
+              "      require-evidence: false\n" +
               "\n" +
               "  a100:\n" +
               "    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<sha>\n" +
@@ -1037,6 +1262,7 @@ const SCENARIOS = [
               "      commit: ${{ github.event.pull_request.head.sha }}\n" +
               "      job: a100-bench\n" +
               "      check-name: a100-bench-verified\n" +
+              "      require-evidence: false\n" +
               "      required: false",
           },
         ],
@@ -1046,6 +1272,13 @@ const SCENARIOS = [
             text: {
               en: "A missing receipt for an optional job becomes <code>not applicable</code>, with a success conclusion.",
               zh: "可选 job 没有回执时，结论是 <code>not applicable</code>，conclusion 为 success。",
+            },
+          },
+          {
+            t: "note",
+            text: {
+              en: "The snippet leaves evidence out to keep the job routing visible. In a real gate, remove <code>require-evidence: false</code> and give each job its own archive.",
+              zh: "这段配置省略了证据，好让 job 的分流看清楚。真正的门禁里，删掉 <code>require-evidence: false</code>，给每个 job 各自的归档。",
             },
           },
         ],
@@ -1066,13 +1299,13 @@ const SCENARIOS = [
             t: "comment",
             author: "v100-operator",
             time: { en: "2 min ago", zh: "2 分钟前" },
-            body: '<!-- receipt:v2 -->\n"job":"v100-smoke"  ...',
+            body: '<!-- receipt:v1 -->\n"job":"v100-smoke"  ...',
           },
           {
             t: "comment",
             author: "a100-operator",
             time: { en: "1 min ago", zh: "1 分钟前" },
-            body: '<!-- receipt:v2 -->\n"job":"a100-bench"  ...',
+            body: '<!-- receipt:v1 -->\n"job":"a100-bench"  ...',
           },
         ],
         machine: [
@@ -1170,8 +1403,8 @@ const VARIANTS = [
       en: "Attest a push when no pull request exists, and see what can and cannot be enforced.",
       zh: "没有 PR 时给推送做背书，也说明什么拦得住、什么拦不住。",
     },
-    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-branch-gate.md",
-    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-branch-gate.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/guides/branch-gate.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/guides/branch-gate.md",
   },
   {
     title: { en: "Air-gapped hosts", zh: "离线机器" },
@@ -1179,8 +1412,8 @@ const VARIANTS = [
       en: "Signing on an HPC login node with no outbound network. What to carry, and who carries it.",
       zh: "在没有外网的 HPC 登录节点上签名。带什么进去，谁把结果带出来。",
     },
-    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/offline.md",
-    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/offline.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/guides/air-gapped.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/guides/air-gapped.md",
   },
   {
     title: { en: "Operations", zh: "运维" },
@@ -1197,8 +1430,8 @@ const VARIANTS = [
       en: "The full caller workflow from the tour, including the API-based head resolution.",
       zh: "导览里那个调用方 workflow 的完整版本，包括通过 API 解析 head。",
     },
-    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-patch-gate.md",
-    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-patch-gate.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/guides/patch-gate.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/guides/patch-gate.md",
   },
   {
     title: { en: "Benchmark run guide", zh: "Benchmark 记录指南" },
@@ -1206,8 +1439,8 @@ const VARIANTS = [
       en: "Evidence upload, dispatch-only gates, and a section on jobs that run for days.",
       zh: "证据上传、只用 dispatch 的门禁，以及任务跑好几天时怎么办。",
     },
-    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-hardware-run.md",
-    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-hardware-run.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/guides/hardware-run.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/guides/hardware-run.md",
   },
   {
     title: { en: "Multiple jobs guide", zh: "多 job 指南" },
@@ -1215,8 +1448,8 @@ const VARIANTS = [
       en: "Naming, required versus optional, and the aggregator pattern in full.",
       zh: "命名、必需与可选，以及完整的汇总 job 写法。",
     },
-    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/scenario-multi-job.md",
-    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/scenario-multi-job.md",
+    href: "https://github.com/Oaklight/out-of-band/blob/main/docs/en/guides/multi-job.md",
+    hrefZh: "https://github.com/Oaklight/out-of-band/blob/main/docs/zh/guides/multi-job.md",
   },
 ];
 
@@ -1280,8 +1513,8 @@ const ADOPT = [
   {
     title: { en: "Sign where the job ran", zh: "在跑任务的地方签名" },
     text: {
-      en: "Install the wheel or the single-file <code>oob.pyz</code>. The command needs no network and no GitHub token.",
-      zh: "装 wheel，或者用单文件 <code>oob.pyz</code>。命令不需要网络，也不需要 GitHub token。",
+      en: "Install the wheel or the single-file <code>oob-&lt;version&gt;.pyz</code>. Pack the evidence directory. The command needs no network and no GitHub token.",
+      zh: "装 wheel，或者用单文件 <code>oob-&lt;version&gt;.pyz</code>。把证据目录打包。命令不需要网络，也不需要 GitHub token。",
     },
   },
   {

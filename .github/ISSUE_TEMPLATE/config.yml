@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/Oaklight/out-of-band/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue.
+  - name: Documentation
+    url: https://github.com/Oaklight/out-of-band/tree/main/docs/en/README.md
+    about: Install, concepts, CLI, action, workflow, and guides.
+  - name: Guided tour
+    url: https://oaklight.github.io/out-of-band/
+    about: The interactive walkthrough with three scenarios.

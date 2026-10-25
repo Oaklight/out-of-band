@@ -1,6 +1,6 @@
 <h1 align="center">out-of-band</h1>
 
-<p align="center">在 GitHub 够不到的地方跑检查，用签名回执卡住合并。</p>
+<p align="center">给 GitHub 跑不了、或者已经在别处跑过的 CI 检查签一份回执。</p>
 
 <p align="center">
   <a href="https://pypi.org/project/out-of-band/"><img src="https://img.shields.io/pypi/v/out-of-band?color=green" alt="PyPI"></a>
@@ -14,61 +14,59 @@
 </p>
 
 <p align="center">
-  <a href="https://oaklight.github.io/out-of-band/"><strong>先看一遍导览 →</strong></a>
+  <a href="https://oaklight.github.io/out-of-band/?lang=zh"><strong>走一遍导览 →</strong></a>
 </p>
 
-## 为什么需要它
+## 两种需要回执的情况
 
-有些检查，GitHub 的 runner 跑不了：需要某种加速器、有授权的工具链、只能从内网访问的数据库，或者一台几个人共用的实验机。检查本身没问题，只是搬不到 GitHub 上。
+**GitHub 跑不了这个任务。** 代码需要特定的加速卡、有许可证的工具链、只有办公网能连的数据库，或者一台几个人共用的实验机。托管 runner 到不了那里。
 
-把 runner 装到那台机器上，麻烦通常比收益多：
+**任务已经在别处跑过。** 在 CI 里重跑太慢、不稳定，或者结果对不上。你希望门禁接受手上这次运行。
 
-- 自托管 runner 要在共享机器上常驻一个进程，放一份能领任务的 GitHub 凭据，仓库代码还会在那台机器上执行。
-- 上传日志和产物，最后变成有人在浏览器里翻文件来决定能不能合并。
-- 干脆跳过检查，门禁就成了摆设。
+两种情况留下的是同一个缺口：一个必需的 check，没有任何 workflow 能诚实地产生它。out-of-band 让那台机器签一份声明，不需要 GitHub 凭据，也不需要被访问。
 
-out-of-band 换个做法：检查留在原地，跑完只生成一小段签名记录，写明仓库、commit、job、结果和证据摘要。离开这台机器的只有这段记录。GitHub 那边的 workflow 会对原始字节验签、核对绑定关系，再把结论发成 check run。操作员机器不用开入站端口，也不用存 GitHub 凭据。
+常见的替代方案是在机器上装自托管 runner。代价是共享硬件上多一个长期守护进程、一个能领取任务的凭据，以及仓库代码在那台机器上执行。传日志则把决定权交给浏览器标签页前的某个人。跳过 check，门禁就变成了建议。
 
-还有一种情况，一点也不特殊：测试在 CI 上也能跑，但你已经跑过了。重跑可能比写这次改动还久，可能因为本地没出现的环境问题失败，也可能得到一个略有差别的数字。签名回执让门禁直接采用你手上这次结果。
-
-没有有效记录，结论就是 `unverified`，合并继续被挡住。“没跑”和“跑了但失败”始终分开。
+## 怎么工作
 
 ```
-operator host                          GitHub
-─────────────                          ──────
-check ──► evidence ──► sign            PR comment / dispatch
-                          │                    │
-                          └── signed block ────┴──► verify.yml
-                                                      │
-                                                      ├── check run
-                                                      ├── step summary
-                                                      └── sticky comment
+签名机                                GitHub
+─────────                             ──────
+跑任务 ──► 证据 ──► 签名              PR 评论 / dispatch
+                      │                    │
+                      └── 签名块 ──────────┴──► verify.yml
+                                                  │
+                                                  ├── check run
+                                                  ├── step summary
+                                                  └── 固定评论
 ```
 
-本仓库只管机制（格式、签名、验签、发布）；策略（哪些路径要回执、job 叫什么、用哪把密钥、必选还是可选）留在使用方仓库。
+1. 操作员在任务必须跑的地方跑完，签一份声明：这个仓库、这个 commit、这个 tree、这个 job、这个结果、这份证据摘要。
+2. 声明通过 PR 评论、dispatch 参数或文件传出去。
+3. GitHub 上的 workflow 用默认分支的 `.github/allowed_signers` 验签，核对绑定，发布 check run。
 
-## 三种状态，别混为一谈
+这个仓库负责机制：格式、签名、验证、发布。使用方负责策略：哪些路径需要回执、job 叫什么、用哪把钥匙、这个 check 是否必需。
 
-| 回执 | 退出码 | check 结论 |
-|---|---|---|
-| 有效，`result: pass` | 0 | `success` |
-| 有效，`result: fail` | 1 | `failure` |
-| 缺失或无效 | 2 | `failure` |
-| 用法错误或内部错误 | 3 | 不发布，job 失败 |
+## 四种状态，不合并
 
-没有回执就是 `unverified`，不能当成 skip。工具自身出错时，必需的检查会停在 pending，合并照样过不去。所有 unverified 结果的 check 结论都是 `failure`，原因写在标题和 summary 里。
+| 回执 | 验证器状态 | check 结论 |
+| --- | --- | --- |
+| 有效，`result: pass` | `verified` | `success` |
+| 有效，`result: fail` | `failed` | `failure` |
+| 缺失或无效 | `unverified` | `failure` |
+| 策略判定不需要 | `not applicable` | `success` |
 
-## 安装
+`unverified` 的意思是门禁判断不了。结论发布成 `failure`，必需的 check 保持关闭，摘要里带错误码。缺回执从来不算 skip。
+
+## 快速上手
+
+需要 Python 3.10+ 和 OpenSSH 8.0+（`ssh-keygen -Y sign`）。没有运行时依赖。
 
 ```bash
 pip install out-of-band
 ```
 
-需要 Python 3.10+ 和 OpenSSH 8.0+（`ssh-keygen -Y sign`），没有运行时依赖。
-
-## 快速上手
-
-密钥在操作员机器上生成，私钥不出这台机器。
+在跑任务的机器上生成密钥。私钥不离开这台机器。
 
 ```bash
 ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/out-of-band
@@ -76,11 +74,11 @@ ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/out-of-band
 
 把公钥提交到使用方仓库的 `.github/allowed_signers`：
 
-```
+```text
 operator ssh-ed25519 AAAA...
 ```
 
-给某个 commit 签结果。`--commit` 必须是完整的 SHA，本地仓库里得存在；tree 从 commit 读，不看工作区。
+为一个 commit 签名。`--commit` 必须是本地存在的完整 SHA；tree 从 commit 读，不读工作区。
 
 ```bash
 oob sign \
@@ -89,39 +87,25 @@ oob sign \
   --result pass \
   --evidence-dir ./evidence \
   --key ~/.ssh/out-of-band \
-  --output-file ./check-output.txt
+  --repo owner/name \
+  --out receipt.md
 ```
 
-`--output-file` 是可选的：把检查打印的内容（最多 4 KiB）一起签进回执（schema
-`receipt/v2`），check 页面会在摘要下面折叠展示。不带它，回执仍是 `receipt/v1`。
-
-输出就是回执：一个 HTML 标记、一行 JSON、一段 SSH 签名。贴成 PR 评论，或者通过 `workflow_dispatch` 传进去。
-
-要贴成可读的评论，先渲染：
-
-```bash
-oob render --block receipt.md
-```
-
-输出一张 Markdown 表格，把原始签名块放进默认折叠的 `<details>` 里。验证方只读块，不读表格。
+输出是一整个块：一行 HTML 标记、一行 JSON、一段 SSH 签名。把它贴成 PR 评论，或传给 `workflow_dispatch` 参数。想让评论能读，先跑 `oob render --block receipt.md`。
 
 发出去之前先本地验一遍：
 
 ```bash
-oob verify --block block.md \
+oob verify --block receipt.md \
   --allowed-signers .github/allowed_signers \
-  --repo owner/name --commit "$SHA" --expect-job smoke
+  --repo owner/name --commit "$(git rev-parse HEAD)" --expect-job smoke
 ```
 
-## 文档
+退出码：`0` 有效通过，`1` 有效失败，`2` 缺失或无效，`3` 工具错误。
 
-按场景写的指南在 [docs/](docs/zh/README.md)：补丁门禁、benchmark 记录、不经过 PR 的分支背书、同一个 commit 上的多个 job、离线机器，以及运维。建议先从那里看，再回来看下面这串输入参数。
+## 接进仓库
 
-## 接到自己的仓库
-
-两种接法，验证逻辑相同：action 当 step 用，可复用 workflow 当一个 job 用。差别和输入见 [action 文档](docs/zh/action.md)。
-
-### action
+两种载体，同一个验证器。[action](docs/zh/reference/action.md) 作为 step 跑；[可复用 workflow](docs/zh/reference/workflow.md) 作为独立 job 跑。
 
 ```yaml
   verified:
@@ -142,139 +126,73 @@ oob verify --block block.md \
           trusted-authors: operator-login
 ```
 
-`required` 传进来是字符串 `true` 或 `false`。action 自己声明不了
-`permissions`，得由 job 给。
+这段配置只展示门禁的接线。证据默认必需，所以要加 `evidence-url` 或
+`evidence-file`，或者设 `require-evidence: false`。
 
-### 可复用 workflow
+然后在分支保护里要求 `smoke-verified`。check 名是对外接口：改名等于悄悄换掉了受保护的东西。
 
-```yaml
-name: receipt gate
+`uses:` 用完整 commit SHA 固定。tag 会动。
 
-on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-  issue_comment:
-    types: [created]
+## 证据
 
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
+证据默认必需。三个来源选一个：
 
-jobs:
-  policy:
-    # A receipt arriving as a comment must trigger a fresh run.
-    if: >
-      github.event_name == 'pull_request_target' ||
-      (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request != null &&
-       contains(github.event.comment.body, '<!-- receipt:v1 -->'))
-    runs-on: ubuntu-latest
-    outputs:
-      pr: ${{ steps.context.outputs.pr }}
-      commit: ${{ steps.context.outputs.commit }}
-      requires: ${{ steps.paths.outputs.requires }}
-    steps:
-      - id: context
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-        run: |
-          commit="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)"
-          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "commit=$commit" >> "$GITHUB_OUTPUT"
-
-      - id: paths
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ steps.context.outputs.pr }}
-        run: |
-          if gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" \
-               --jq '.[].filename' | grep -qE '^src/'; then
-            echo "requires=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "requires=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  verified:
-    needs: policy
-    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.1
-    with:
-      pr: ${{ needs.policy.outputs.pr }}
-      commit: ${{ needs.policy.outputs.commit }}
-      job: smoke
-      required: ${{ needs.policy.outputs.requires == 'true' }}
-      check-name: smoke-verified
-      trusted-authors: operator-login
-```
-
-然后在分支保护里把 `smoke-verified` 设为必需检查。check 名称是对外契约，改名等于悄悄改了保护规则。
-
-这里用 `pull_request_target` 而不是 `pull_request`：它跑默认分支上的那份 workflow，PR 改不了审判自己的门。它拿着写权限，fork PR 也一样，所以这个 workflow 里不要 checkout、不要执行 PR 代码。验证器只从默认分支读 `allowed_signers`，并把回执当数据。`policy` 通过 API 解析 head，这样评论触发的运行不会退回成 `github.sha`（那是基分支）。
-
-输入：`pr`、`commit`、`job`、`required`、`check-name`、`receipt`、`allowed-signers`、`trusted-authors`、`evidence-url`、`evidence-file`、`report`、`require-evidence`；输出：`verdict`。action 还多 `version`、`source`、`python-version`、`token` 四个输入。
-
-`uses:` 用完整 commit SHA 固定，并在注释里记下版本（`# v0.4.1`），让 Dependabot 去开升级 PR。tag 是可以被挪动的。
-
-### 证据
-
-默认必须提交证据。打包后，用两种方式之一交给验证方：`evidence-file`（runner 上的文件路径）或 `evidence-url`（HTTPS 地址）。怎么存放由你决定。
+| 来源 | 什么时候用 |
+| --- | --- |
+| `evidence-file` | 归档已经在 runner 上 |
+| `evidence-url` | 归档在某个 HTTPS 地址 |
+| `claims.evidence_url` | 希望回执自带证据位置 |
 
 ```bash
 oob pack --evidence-dir ./evidence --out evidence.tgz
-# 传 evidence-file，或者上传后把地址签进去：
-oob sign ... --claims evidence_url="https://host/evidence.tgz"
 ```
 
-地址在签名覆盖范围内，所以一条评论就够了。解析顺序是 `evidence-file`、`evidence-url`、`claims.evidence_url`。`require-evidence: false` 恢复只签摘要的模式。
+验证方解开归档，重新算摘要，和签名里的值比对。对不上是 `E_EVIDENCE_MISMATCH`，结论为 `unverified`。对上了就上传成 `oob-evidence` artifact，job summary 里显示清单和有限长度的文本预览。
 
-runner 读取或下载、安全解包、重算摘要并比对。两种来源都没有是 `E_NO_EVIDENCE`，对不上是 `E_EVIDENCE_MISMATCH`。一致就作为 `oob-evidence` artifact 上传，并在 run summary 里列出清单和有限的文本预览。GitHub token 只发给 `api.github.com` 和 `github.com`，其他主机必须是公开或自带签名的 URL。
+设 `require-evidence: false` 可以只接受签名摘要，不要归档。
 
-### 回执从哪来
+GitHub token 只发给 `api.github.com` 和 `github.com`。其他主机必须公开可读，或者提供签名 URL。
 
-- 传了 `receipt` 输入就用它，适合 `workflow_dispatch`。
-- 否则读 PR 的 issue 评论，只认可信作者：配了 `trusted-authors` 就按名单，没配就只认 `OWNER`、`MEMBER`、`COLLABORATOR`。不可信评论里的标记直接忽略，陌生人贴一条也卡不住门禁。
-- 指向旧提交的块会被忽略，重跑时可以直接贴新回执，不必先删掉旧的那条。只有指向期望提交的块才算候选。
-- 字节完全一致的块算同一条；同一提交的块互相对不上才报 `E_MULTI_BLOCK`。
+## 回执证明什么
 
-### 触发方式和 fork
+证明某把被列出的钥匙的持有者，签了这些字节，绑定了一个仓库、commit、tree、job 和证据摘要。
 
-从 fork 来的 `pull_request` 只有只读 token，什么都发布不了。fork 场景用 `pull_request_target`（跑默认分支代码，不 checkout PR）或者 `issue_comment`。另外，`pull_request` 跑的是 PR 自己那份 workflow，贡献者可以借此把门禁改松；这个 job 不要用它。
+它不证明任务跑对了、证据和摘要一致，也不证明签名机没被入侵。它是背书，不是正确性证明。见[信任](docs/zh/concepts/trust.md)和 [SPEC.md](SPEC.md) 第 8 节。
 
-### 凭据
+## 文档
 
-`sign` 和 `verify` 不需要任何 GitHub 凭据，断网也能跑。发布得用 GitHub App 身份；在 Actions 里，自动签发的 `GITHUB_TOKEN` 就是 Actions App。PAT 只能建 commit status，所以 CLI 里没有 `publish`。
+从[文档索引](docs/zh/README.md)开始。常见入口：
 
-### 离线操作员机器
+| 你想做的事 | 读这篇 |
+| --- | --- |
+| 装上并签出第一份回执 | [快速上手](docs/zh/start.md) |
+| 理解回执、信任、证据、状态 | [概念](docs/zh/README.md#按你手上的事来选) |
+| 查命令、参数或输入 | [CLI](docs/zh/reference/cli.md)、[action](docs/zh/reference/action.md)、[workflow](docs/zh/reference/workflow.md) |
+| 照着搭一套完整门禁 | [补丁门禁](docs/zh/guides/patch-gate.md)、[硬件运行](docs/zh/guides/hardware-run.md) |
+| 在离线机器上使用 | [离线机器](docs/zh/guides/air-gapped.md) |
+| 和其他工具比较 | [先例与替代方案](docs/zh/prior-art.md) |
 
-签名机可以完全没有外网。用 Release 附带的单文件 `oob.pyz`（或 wheel）运行，用 `git bundle` 把代码带进去，回执和证据再手工带出来。具体步骤见 [docs/offline.md](docs/zh/offline.md)。
+英文文档在 [`docs/en/`](docs/en/README.md)，结构与中文一致。
 
-### 保留期
-
-check 和 workflow run 跟着 Actions 的保留期走（默认 90 天，公开仓库最多 90 天）。要长期留档，靠 PR 评论里的回执；证据目录留在操作员那边。
-
-## 回执能说明什么
-
-它能说明：某个登记过公钥的人用对应的私钥签了这些字节，绑定了一个仓库、commit、tree、job 和证据摘要。
-
-它不能说明 job 跑得对不对、证据和摘要是否一致、机器有没有被入侵。这是一份签名声明，不是正确性证明。详见 [SPEC.md](SPEC.md) 第 8 节。
-
-## 关于名字
-
-out-of-band 说的是检查发生在常规 CI 路径之外。GitHub 仍然收到结果，但任务和签名在别处完成：实验室的机器、HPC 登录节点、租来的 GPU。回来的只有一份签名回执。
-
-命令是 `oob`，就是这几个词的缩写；包名和仓库用全称 `out-of-band`。
-
-## 开发
+## 安装
 
 ```bash
-pip install -e ".[dev]"
-pytest -q
-ruff check src tests
+pip install out-of-band
 ```
 
-`SPEC.md` 是规范（英文）。`docs/zh/validation.md` 记录了操作员机器上的验证。self-test workflow 会签四份回执，断言有效的能过、伪造的过不了。
+每个 release 还带 `oob-<version>.pyz`，单文件，只需要 Python。机器连不上 PyPI 时通常用它。
+
+Python 3.10 到 3.14 都在测试范围内。Windows 上用 `python oob-<version>.pyz`。
+
+## 项目
+
+- [安全策略](SECURITY.md)
+- [参与贡献](CONTRIBUTING.md)
+- [更新记录](CHANGELOG.md)
+- [示例](examples/README.md)
+- [规范](SPEC.md)
+- 许可证：Apache-2.0
 
 ## 不做什么
 
-不做 runner、不做托管服务、不做 GitHub App、不接 Sigstore、不存产物。
+不做 runner，不做托管服务，不做 GitHub App，不接 Sigstore，不做透明日志，也不存 artifact。工具只负责签和验；其余归使用它的仓库。

@@ -1,15 +1,18 @@
-# Scenario: test a patch before it merges
+# Guide: test a patch before it merges
 
-[English](scenario-patch-gate.md) | [中文](../zh/scenario-patch-gate.md)
+[English](patch-gate.md) | [中文](../../zh/guides/patch-gate.md)
 
-You have a `patches/` directory (or `src/`, or a firmware tree) whose changes
-must be smoke-tested on real hardware. CI cannot run that test, so an operator
-runs it and signs the result.
+You have a `patches/` directory, a firmware tree, or some other path whose
+changes must be smoke-tested on real hardware. CI cannot run that test, so an
+operator runs it and signs the result.
+
+This is the off-CI case. The same gate also works when the test already ran on
+a workstation; only the reason for signing differs.
 
 ## The workflow
 
-Two jobs: `policy` decides whether this PR needs a receipt, `verified` calls the
-reusable workflow.
+Two jobs: `policy` decides whether this pull request needs a receipt, and
+`verified` calls the reusable workflow.
 
 ```yaml
 name: receipt gate
@@ -64,7 +67,7 @@ jobs:
 
   verified:
     needs: policy
-    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.5.0
     with:
       pr: ${{ needs.policy.outputs.pr }}
       commit: ${{ needs.policy.outputs.commit }}
@@ -75,8 +78,8 @@ jobs:
 ```
 
 The API call resolves the head for both triggers. On `issue_comment`,
-`github.sha` is the default branch, not the PR head, so the event context cannot
-be used directly.
+`github.sha` is the default branch, not the pull request head, so the event
+context cannot be used directly.
 
 What the inputs mean:
 
@@ -84,7 +87,7 @@ What the inputs mean:
   string.
 - `check-name` is what branch protection matches. Keep it unique per job.
 - `required: false` turns an absent receipt into `not applicable` with a
-  `success` conclusion, so a docs-only PR is not blocked.
+  `success` conclusion, so a docs-only pull request is not blocked.
 - `trusted-authors` narrows who may supply a receipt. Without it, any owner,
   member, or collaborator qualifies.
 
@@ -107,39 +110,55 @@ oob sign \
   --evidence-dir /tmp/evidence \
   --key ~/.ssh/out-of-band \
   --repo owner/repo \
+  --claims evidence_url=https://example.com/evidence.tgz \
   --output-file /tmp/evidence/last-lines.txt \
   --out receipt.md
 
 # 4. Deliver. A PR comment from a trusted account is the usual channel.
-gh pr comment 5 --body-file receipt.md
+oob render --block receipt.md --out comment.md
+gh pr comment 5 --body-file comment.md
 ```
 
 `--output-file` is optional. It puts up to 4 KiB of text into the check's
 foldable transcript, which is where a reviewer looks first. Do not put secrets
 there; the check is public.
 
+Evidence is required by default. The verifier expects an archive from
+`evidence-file`, `evidence-url`, or `claims.evidence_url`. The sign command
+above puts the URL in the signed claim, so the comment is self-contained. Pack
+the directory and upload it wherever the runner can reach it:
+
+```bash
+oob pack --evidence-dir /tmp/evidence --out evidence.tgz
+```
+
+If you do not want to store an archive, set `require-evidence: false` on the
+call and the receipt's digest becomes the only evidence record.
+
 ## Where the workflow comes from
 
-`pull_request` uses the workflow file from the PR's merge commit. A contributor
-can therefore edit the gate that judges them: change `required`, publish a green
-check under the expected name, or delete the job and leave the required check
-missing. Branch protection cannot tell the difference.
+`pull_request` uses the workflow file from the pull request's merge commit. A
+contributor can therefore edit the gate that judges them: change `required`,
+publish a green check under the expected name, or delete the job and leave the
+required check missing. Branch protection cannot tell the difference.
 
 `pull_request_target` uses the default branch's copy, with a write token, for
-fork PRs too. That is why the example above triggers on it. The rule that comes
-with it: never check out or run PR code in this workflow. The verifier reads
-`allowed_signers` from the default branch and treats the receipt as data.
+fork pull requests too. That is why the example triggers on it. The rule that
+comes with it: never check out or run pull request code in this workflow. The
+verifier reads `allowed_signers` from the default branch and treats the receipt
+as data.
 
 ## Pinning and upgrades
 
 The `uses:` line is written once, on the default branch. A normal pull request
-does not touch it. Upgrading is a separate, small PR; if two upgrade PRs edit
-the same line they conflict like any other change, so land them one at a time.
+does not touch it. Upgrading is a separate, small pull request; if two upgrade
+pull requests edit the same line they conflict like any other change, so land
+them one at a time.
 
 Options for the ref:
 
-- **Full commit SHA** (recommended): immutable. Add a `# v0.4.1` comment so a
-  tool knows the version, and let Dependabot open the bump PR.
+- **Full commit SHA** (recommended): immutable. Add a `# v0.5.0` comment so a
+  tool knows the version, and let Dependabot open the bump pull request.
 - **Release tag**: shorter, but a tag can be moved to another commit.
 - **Default branch**: always current, never reviewed. Do not use it for a gate.
 - **A local copy** (`uses: ./.github/workflows/verify.yml`): no external pin,
@@ -179,13 +198,14 @@ adding a platform means adding one caller job, once.
 ## What happens next
 
 The comment triggers the workflow, because the marker in the block matches the
-`policy` condition. The verifier reads the PR's comments, keeps the ones from
-trusted authors, selects the block for the head commit and `patch-smoke`,
-verifies the signature, and publishes `patch-smoke-verified`.
+`policy` condition. The verifier reads the pull request's comments, keeps the
+ones from trusted authors, selects the block for the head commit and
+`patch-smoke`, verifies the signature, and publishes
+`patch-smoke-verified`.
 
-If the PR moves on with a new push, the old receipt no longer matches the head
-and is ignored. Sign the new commit and post a new comment; nothing has to be
-deleted.
+If the pull request moves on with a new push, the old receipt no longer matches
+the head and is ignored. Sign the new commit and post a new comment; nothing
+has to be deleted.
 
 ## Where it goes wrong
 
@@ -195,14 +215,15 @@ deleted.
 | `E_WRONG_JOB` | `--job` does not match the `job:` input |
 | `E_BAD_SIGNATURE` | the key is not in `allowed_signers` on the default branch |
 | `E_MULTI_BLOCK` | two different receipts for the same commit and job; delete one |
+| `E_NO_EVIDENCE` | evidence is required and no archive was supplied |
 | the check is missing entirely | the workflow did not run; look at the Actions tab and the `if:` gate |
 
 ## Notes
 
-- Do not check out or execute PR code in this workflow. It runs with a write
-  token, including for fork PRs.
-- A fork PR gets a read-only token on `pull_request`. `pull_request_target` and
-  `issue_comment` both avoid that; the example uses the former so the gate runs
-  on every push without a comment.
-- Evidence is optional. Add `evidence-url` when the logs matter; see
-  [Hardware run](scenario-hardware-run.md).
+- Do not check out or execute pull request code in this workflow. It runs with
+  a write token, including for fork pull requests.
+- A fork pull request gets a read-only token on `pull_request`.
+  `pull_request_target` and `issue_comment` both avoid that; the example uses
+  the former so the gate runs on every push without a comment.
+- For a larger run with an attached archive, see
+  [Hardware run](hardware-run.md).

@@ -1,23 +1,23 @@
-# 操作员机器验证
+# 操作员主机验证记录
 
 [English](../en/validation.md) | [中文](validation.md)
 
-目标：证明跑检查、签回执的那台机器，不需要入站通路，也不需要持有 GitHub 凭据。
+目标：证明跑检查、签回执的那台机器不需要被访问，也不持有 GitHub 凭据。
 
-记录于 2026-10-23。机器是 Debian 12，OpenSSH 9.2p1，Python 3.11，单 vCPU，内存不足 3 GiB。下称**操作员机器**；本文不出现主机名、地址、用户名或设备标识。
+记录于 2026-10-23，Debian 12，OpenSSH 9.2p1，Python 3.11，1 个 vCPU，内存不到 3 GiB。文中称这台机器为 **operator host**；不出现主机名、地址、用户名或设备标识。
 
-## 验证了什么
+## 测了什么
 
-| 检查项 | 结果 |
-|---|---|
-| 在空的网络命名空间里执行 `oob sign`（`unshare -n`） | 退出码 0，得到有效块 |
-| 对字面 payload 离线执行 `ssh-keygen -Y verify` | 退出码 0 |
-| 机器上的 GitHub 凭据 | 没有：无 `gh` 配置，环境中没有 `GH_TOKEN` / `GITHUB_TOKEN` |
-| 流程需要的入站监听 | 没有；每一步都是本地读取，或一次出站 HTTPS 请求 |
+| 检查 | 结果 |
+| --- | --- |
+| 在空网络命名空间（`unshare -n`）里运行 `oob sign` | 退出 0，生成有效块 |
+| 离线对原始 payload 运行 `ssh-keygen -Y verify` | 退出 0 |
+| 主机上的 GitHub 凭据 | 没有：无 `gh` 配置，环境里无 `GH_TOKEN`/`GITHUB_TOKEN` |
+| 流程需要的入站监听 | 无；每一步都是本地读取或主动发起 HTTPS |
 
 ## 过程
 
-在操作员机器上以 root 身份，在一个临时目录里执行。
+在操作员主机上以 root 运行，目录用完即弃。
 
 ```bash
 WORK=$(mktemp -d)
@@ -41,7 +41,7 @@ unshare -n env PYTHONPATH=/path/to/out-of-band/src python3 -m oob.cli sign \
   --job smoke --commit "$COMMIT" --result pass \
   --evidence-dir "$WORK/evidence" --key "$WORK/keys/op_key" > "$WORK/block.md"
 
-# 对字面字节离线验签。
+# 离线验证原始字节。
 python3 - "$WORK" <<'PY'
 import pathlib, re, subprocess, sys
 work = pathlib.Path(sys.argv[1])
@@ -62,10 +62,12 @@ print("verify exit:", result.returncode)
 PY
 ```
 
-断网状态下，签名和验证都成功了。
+断网状态下，签名和验证都成功。
 
 ## 这证明了什么，没证明什么
 
-它证明这套机制不需要入站可达性，也不需要 GitHub 凭据：签名在本地，验证也在本地。
+证明机制不需要入站可达，也不需要 GitHub 凭据：签名在本地，验证也在本地。
 
-它不证明这台机器在其他方面做了加固。机器上可能还跑着别的服务、开着别的端口；这个测试只说明回执流程本身不要求新增监听。把回执送到 GitHub 需要一次出站 HTTPS 请求；如果操作员手工把块贴进 PR，则一次都不需要。
+它不证明这台主机在其他方面已经加固。主机可能还跑着别的服务、开着自己的监听；这个测试只说明回执流程没有增加这种需求。把回执送到 GitHub 需要一次主动的 HTTPS 请求，操作员手动把块贴进 PR 时连这一次都不需要。
+
+回执证明什么，见[信任](concepts/trust.md)；传输方式见[离线机器](guides/air-gapped.md)。

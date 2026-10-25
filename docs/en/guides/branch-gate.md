@@ -1,6 +1,6 @@
-# Scenario: attest pushes, without a PR
+# Guide: attest pushes, without a pull request
 
-[English](scenario-branch-gate.md) | [中文](../zh/scenario-branch-gate.md)
+[English](branch-gate.md) | [中文](../../zh/guides/branch-gate.md)
 
 Some repositories deploy straight from a branch, or hold artifacts that no pull
 request touches: models, firmware images, datasets. You still want a signed
@@ -16,10 +16,10 @@ branch gate is therefore one of three things:
 - **retroactive**: the push lands, the operator dispatches a verification, and
   the check turns green on that commit;
 - **preventive**: require pull requests, even self-approved ones, and use the
-  [patch gate](scenario-patch-gate.md).
+  [patch gate](patch-gate.md).
 
-Pick deliberately. Calling an advisory check "enforced" is worse than not having
-one.
+Pick deliberately. Calling an advisory check "enforced" is worse than not
+having one.
 
 ## Wiring it
 
@@ -43,7 +43,7 @@ permissions:
 
 jobs:
   verified:
-    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha>
+    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.5.0
     with:
       pr: "0"
       commit: ${{ inputs.commit }}
@@ -52,6 +52,10 @@ jobs:
       receipt: ${{ inputs.receipt }}
       evidence-url: ${{ inputs.evidence-url }}
 ```
+
+Evidence is required by default, so this dispatch needs an archive through
+`evidence-url` (or `evidence-file`). If you only want the signed digest, add
+`require-evidence: false` and the call accepts an empty URL.
 
 To let a push trigger the same call, add `push: branches: [main]` and pass
 `commit: ${{ github.sha }}`. That run will be unverified at first, because no
@@ -67,8 +71,8 @@ gh workflow run attestation.yml \
   -F receipt=@receipt.md
 ```
 
-If the block has been through a shell already and the backticks look suspicious,
-go straight to the API, which takes JSON:
+If the block has been through a shell already and the backticks look
+suspicious, go straight to the API, which takes JSON:
 
 ```bash
 jq -n --rawfile r receipt.md --arg c "$(git rev-parse origin/main)" \
@@ -78,11 +82,12 @@ jq -n --rawfile r receipt.md --arg c "$(git rev-parse origin/main)" \
 
 ## Committing the receipt to the repository
 
-A block committed to a branch can be read by the caller and passed as `receipt`.
-It cannot live in the commit under test, because the workflow checks out the
-default branch. This suits a dedicated "attestations" branch that records what
-was verified and when; it is not a substitute for signature verification, which
-still runs. Keep it out of the main path unless you need the paper trail.
+A block committed to a branch can be read by the caller and passed as
+`receipt`. It cannot live in the commit under test, because the workflow checks
+out the default branch. This suits a dedicated "attestations" branch that
+records what was verified and when; it is not a substitute for signature
+verification, which still runs. Keep it out of the main path unless you need
+the paper trail.
 
 ## Verification is the same
 
