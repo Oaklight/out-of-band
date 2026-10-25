@@ -1,14 +1,21 @@
-# Out-of-band SPEC — v0.1
+# Out-of-band receipt specification, format v0.1
 
-Status: normative for `v0.1.x`. Mechanism only.
+Status: normative for the receipt format and the CI verifier contract. The
+package that implements it is versioned separately; this document describes the
+mechanism, not a release.
 
-Out-of-band lets a job run where GitHub cannot reach it, sign a receipt bound to a
-commit, and have a hosted workflow verify that receipt and publish the verdict
-as a check.
+Out-of-band covers two cases with one mechanism: a job that runs where GitHub
+cannot reach it, and a job that already ran somewhere else. In both, the machine
+that ran the job signs a receipt bound to a commit, and a hosted workflow
+verifies that receipt and publishes the verdict as a check.
 
 This document pins the schema, the verification order, the evidence digest, the
 exit codes, and the workflow contract. Anything not pinned here is not part of
-v0.1.
+format v0.1.
+
+The user-facing explanation, examples, and operational guidance are in
+[`docs/`](docs/README.md). Where this document and a guide disagree, this
+document wins.
 
 ## 0. Boundary
 
@@ -32,7 +39,7 @@ A receipt is an HTML comment marker followed by exactly two fenced blocks:
 ````text
 <!-- receipt:v1 -->
 ```json
-{"schema":"receipt/v1","repo":"OWNER/NAME","commit":"<40 hex>","tree":"<40 hex>","job":"smoke","result":"pass","issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.4.1","evidence":{"count":7,"digest":"sha256:<64 hex>"},"claims":{"device_count":2}}
+{"schema":"receipt/v1","repo":"OWNER/NAME","commit":"<40 hex>","tree":"<40 hex>","job":"smoke","result":"pass","issued_at":"2026-10-23T21:40:00Z","tool":"oob/0.5.0","evidence":{"count":7,"digest":"sha256:<64 hex>"},"claims":{"device_count":2}}
 ```
 ```ssh-signature
 -----BEGIN SSH SIGNATURE-----
@@ -260,7 +267,7 @@ Stable strings, printed as `error: <CODE>: <message>` on stderr.
 | `E_BAD_JSON` | not valid UTF-8 or not JSON | 2 |
 | `E_DUP_KEY` | duplicate JSON object key | 2 |
 | `E_UNKNOWN_FIELD` | field not defined by this schema | 2 |
-| `E_BAD_SCHEMA` | `schema` is not `receipt/v1` | 2 |
+| `E_BAD_SCHEMA` | `schema` is not a supported receipt version | 2 |
 | `E_BAD_TYPE` | wrong JSON type, float, or null | 2 |
 | `E_BAD_VALUE` | value violates its pattern or range | 2 |
 | `E_CLAIMS_LIMIT` | claims exceed count, size, or shape limits | 2 |
@@ -659,8 +666,8 @@ mechanism.
 - Adding, removing, or renaming any other field, or changing any semantics,
   produces a new schema version. There is no tolerant parsing.
 - `tool` is informational and never affects verification.
-- v0.1 verifiers must keep accepting `receipt/v1` for the life of the 0.x and
-  1.x lines.
+- A verifier implementing this format version must keep accepting `receipt/v1`
+  for the life of the 0.x and 1.x package lines.
 
 ## 10. Deferred to later versions
 

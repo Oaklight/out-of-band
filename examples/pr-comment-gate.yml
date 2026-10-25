@@ -56,7 +56,7 @@ jobs:
       checks: write
       pull-requests: write
     steps:
-      - uses: Oaklight/out-of-band@v0.5.0
+      - uses: Oaklight/out-of-band@<full-sha> # v0.5.0
         with:
           pr: ${{ needs.policy.outputs.pr }}
           commit: ${{ needs.policy.outputs.commit }}

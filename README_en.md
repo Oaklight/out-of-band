@@ -1,6 +1,6 @@
 <h1 align="center">out-of-band</h1>
 
-<p align="center">Out-of-band receipts for CI gates.</p>
+<p align="center">Signed receipts for CI checks that GitHub cannot run, or that already ran somewhere else.</p>
 
 <p align="center">
   <a href="https://pypi.org/project/out-of-band/"><img src="https://img.shields.io/pypi/v/out-of-band?color=green" alt="PyPI"></a>
@@ -17,78 +17,75 @@
   <a href="https://oaklight.github.io/out-of-band/"><strong>Take the guided tour →</strong></a>
 </p>
 
-## Why this exists
+## Two reasons to sign a receipt
 
-Picture a pull request that only one machine can really test. The code needs a
-particular accelerator, a licensed toolchain, a database reachable only from
-the office network, or a lab box that several people share. GitHub's runners
-cannot get there, and the check cannot move.
+**GitHub cannot run the job.** The code needs a particular accelerator, a
+licensed toolchain, a database reachable only from the office network, or a lab
+box several people share. A hosted runner cannot get there.
 
-Putting a runner on that machine is usually worse than the problem:
+**The job already ran somewhere else.** Re-running it in CI is slow, flaky, or
+returns a different number. You want the gate to accept the run you have.
 
-- A **self-hosted runner** means a long-lived daemon on shared hardware, a
-  GitHub credential that can pick up jobs, and repository code executing on the
-  box.
-- **Uploading logs and artifacts** leaves the merge decision to a reviewer
-  reading files in a browser tab.
-- **Skipping the check** turns the gate into a suggestion.
+Both cases leave the same gap: a required check that no workflow can produce
+honestly. Out-of-band closes it with a statement the machine can sign without a
+GitHub credential and without an inbound path.
 
-Out-of-band takes a fourth route. The check runs where it already runs and produces
-a small signed statement: this repository, this commit, this job, this result,
-this evidence digest. That statement is the only thing that travels. A hosted
-workflow verifies the signature over the exact bytes, checks the bindings, and
-publishes the verdict as a check run. The operator machine needs no inbound
-path and holds no GitHub credential.
+Putting a self-hosted runner on the machine is the usual alternative. It means a
+long-lived daemon on shared hardware, a credential that can pick up jobs, and
+repository code executing on the box. Uploading logs leaves the decision to
+someone reading a browser tab. Skipping the check turns the gate into a
+suggestion.
 
-The same mechanism covers a case with nothing exotic in it: you already ran the
-test locally. Re-running it on a runner can take longer than the change took to
-write, can fail for reasons the local run did not, or can return a slightly
-different number. A signed receipt lets the gate accept the run you have.
-
-If no valid statement arrives, the result is `unverified` and the merge stays
-blocked. "Did not run" and "ran and failed" remain different states.
+## How it works
 
 ```
 operator host                          GitHub
 ─────────────                          ──────
-check ──► evidence ──► sign            PR comment / dispatch
-                          │                    │
-                          └── signed block ────┴──► verify.yml
-                                                      │
-                                                      ├── check run
-                                                      ├── step summary
-                                                      └── sticky comment
+run ──► evidence ──► sign              PR comment / dispatch
+                        │                    │
+                        └── signed block ────┴──► verify.yml
+                                                    │
+                                                    ├── check run
+                                                    ├── step summary
+                                                    └── sticky comment
 ```
 
-The split is deliberate: this repository owns the mechanism (format, signing,
-verification, publishing). The consumer owns the policy (which paths need a
-receipt, the job name, which key, required or optional).
+1. The operator runs the job where it has to run and signs one statement: this
+   repository, this commit, this tree, this job, this result, this evidence
+   digest.
+2. The statement travels as a pull request comment, a dispatch input, or a
+   file.
+3. A workflow on GitHub verifies the signature against
+   `.github/allowed_signers` on the default branch, checks the bindings, and
+   publishes a check run.
 
-## Three states, never collapsed
+The repository owns the mechanism: format, signing, verification, publishing.
+The consumer owns the policy: which paths need a receipt, the job name, which
+key, and whether the check is required.
 
-| Receipt | Exit | Check conclusion |
-|---|---|---|
-| valid, `result: pass` | 0 | `success` |
-| valid, `result: fail` | 1 | `failure` |
-| absent or invalid | 2 | `failure` |
-| usage or internal error | 3 | nothing published; the job fails |
+## Four states, never collapsed
 
-A missing receipt is **unverified**, never skipped. If the tool cannot run, the
-required check stays pending and the merge stays blocked. Every unverified
-outcome uses the `failure` conclusion; the title and summary carry the reason.
+| Receipt | Verifier state | Check conclusion |
+| --- | --- | --- |
+| valid, `result: pass` | `verified` | `success` |
+| valid, `result: fail` | `failed` | `failure` |
+| absent or invalid | `unverified` | `failure` |
+| not required by policy | `not applicable` | `success` |
 
-## Install
+`unverified` means the gate could not tell. It publishes a `failure`, so a
+required check stays closed, and the summary carries the error code. A missing
+receipt is never a skip.
+
+## Quickstart
+
+Requires Python 3.10+ and OpenSSH 8.0+ (`ssh-keygen -Y sign`). No runtime
+dependencies.
 
 ```bash
 pip install out-of-band
 ```
 
-Python 3.10+ and OpenSSH with `ssh-keygen -Y sign` (OpenSSH 8.0+). No runtime
-dependencies.
-
-## Quickstart
-
-Generate a key on the operator machine. It never leaves the machine.
+Generate a key on the machine that runs the job. It never leaves that machine.
 
 ```bash
 ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/out-of-band
@@ -96,12 +93,12 @@ ssh-keygen -t ed25519 -N "" -C "ci operator" -f ~/.ssh/out-of-band
 
 Commit the public key in the consumer repository as `.github/allowed_signers`:
 
-```
+```text
 operator ssh-ed25519 AAAA...
 ```
 
-Sign a result for one commit. `--commit` must be a full SHA that exists in the
-local clone; the tree is read from the commit, not the worktree.
+Sign one commit. `--commit` must be a full SHA that exists in the local clone;
+the tree is read from the commit, not the worktree.
 
 ```bash
 oob sign \
@@ -110,46 +107,29 @@ oob sign \
   --result pass \
   --evidence-dir ./evidence \
   --key ~/.ssh/out-of-band \
-  --output-file ./check-output.txt
+  --repo owner/name \
+  --out receipt.md
 ```
 
-That prints one block: an HTML marker, one line of JSON, and an SSH signature.
-Post it as a PR comment, or hand it to a `workflow_dispatch` input.
-
-For a readable comment, render the block first:
-
-```bash
-oob render --block receipt.md
-```
-
-That prints a Markdown table plus the exact signed block inside a collapsed
-`<details>`. The signature is folded by default; a verifier ignores the table
-and reads only the block.
-
-`--output-file` is optional. It embeds up to 4 KiB of what the check printed
-into the signed receipt (schema `receipt/v2`), and the check page shows it
-folded under the summary. Without it the receipt stays `receipt/v1`.
+That writes one block: an HTML marker, one line of JSON, and an SSH signature.
+Post it as a pull request comment, or pass it to a `workflow_dispatch` input.
+For a readable comment, run `oob render --block receipt.md` first.
 
 Verify locally before posting:
 
 ```bash
-oob verify --block block.md \
+oob verify --block receipt.md \
   --allowed-signers .github/allowed_signers \
-  --repo owner/name --commit "$SHA" --expect-job smoke
+  --repo owner/name --commit "$(git rev-parse HEAD)" --expect-job smoke
 ```
 
-## Documentation
+Exit codes: `0` valid pass, `1` valid fail, `2` absent or invalid, `3` tool
+error.
 
-Scenario guides live in [docs/](docs/en/README.md): a patch gate, a benchmark run,
-branch attestation without a PR, several jobs on one commit, air-gapped hosts,
-and operations. Start there rather than from the input list below.
+## Use it in a repository
 
-## Wiring a consumer
-
-Two forms, same verifier: the action runs as a step, the reusable workflow as a
-job. [The action page](docs/en/action.md) lists the inputs and the trade-offs.
-
-### The action
+Two carriers, one verifier. The [action](docs/en/reference/action.md) runs as a
+step; the [reusable workflow](docs/en/reference/workflow.md) runs as its own job.
 
 ```yaml
   verified:
@@ -170,152 +150,37 @@ job. [The action page](docs/en/action.md) lists the inputs and the trade-offs.
           trusted-authors: operator-login
 ```
 
-`required` arrives as the string `true` or `false`. The action cannot declare
-`permissions`, so the job has to.
+The snippet shows the gate wiring. Evidence is required by default, so add
+`evidence-url` or `evidence-file`, or set `require-evidence: false`.
 
-### Reusable workflow
+Then require `smoke-verified` in branch protection. The check name is public
+API: renaming it silently changes what the branch protects.
 
-```yaml
-name: receipt gate
+Pin `uses:` by full commit SHA. A tag can move.
 
-on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-  issue_comment:
-    types: [created]
+## Evidence
 
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
+Evidence is required by default. Supply the archive in one of three ways:
 
-jobs:
-  policy:
-    # A receipt arriving as a comment must trigger a fresh run.
-    if: >
-      github.event_name == 'pull_request_target' ||
-      (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request != null &&
-       contains(github.event.comment.body, '<!-- receipt:v1 -->'))
-    runs-on: ubuntu-latest
-    outputs:
-      pr: ${{ steps.context.outputs.pr }}
-      commit: ${{ steps.context.outputs.commit }}
-      requires: ${{ steps.paths.outputs.requires }}
-    steps:
-      - id: context
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
-        run: |
-          commit="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)"
-          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "commit=$commit" >> "$GITHUB_OUTPUT"
-
-      - id: paths
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ steps.context.outputs.pr }}
-        run: |
-          if gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files?per_page=100" \
-               --jq '.[].filename' | grep -qE '^src/'; then
-            echo "requires=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "requires=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  verified:
-    needs: policy
-    uses: Oaklight/out-of-band/.github/workflows/verify.yml@<full-sha> # v0.4.1
-    with:
-      pr: ${{ needs.policy.outputs.pr }}
-      commit: ${{ needs.policy.outputs.commit }}
-      job: smoke
-      required: ${{ needs.policy.outputs.requires == 'true' }}
-      check-name: smoke-verified
-      trusted-authors: operator-login
-```
-
-Then make `smoke-verified` a required check in branch protection. The check name
-is public API: renaming it silently changes what the branch protects.
-
-The example uses `pull_request_target`, not `pull_request`: it runs the default
-branch's copy, so a PR cannot edit the gate that judges it. It gets a write
-token, including for fork PRs, so never check out or run PR code here. The
-verifier reads `allowed_signers` from the default branch and treats the receipt
-as data. The `policy` job resolves the head through the API so a comment on an
-issue does not fall back to `github.sha`, which is the base branch.
-
-Inputs: `pr`, `commit`, `job`, `required`, `check-name`, `receipt`,
-`allowed-signers`, `trusted-authors`, `evidence-url`, `evidence-file`,
-`report`, `require-evidence`. Output: `verdict`. The action takes the same inputs plus
-`version`, `source`, `python-version`, and `token`.
-
-Pin `uses:` by full commit SHA and keep the version in a comment
-(`# v0.4.1`); Dependabot can open the bump PR. A tag can be moved.
-
-### Evidence
-
-Evidence is required by default. Pack the directory and supply the archive in
-one of two ways: `evidence-file`, a path on the runner, or `evidence-url`, an
-HTTPS address. The transport is your choice.
+| Source | Use when |
+| --- | --- |
+| `evidence-file` | the archive is already on the runner |
+| `evidence-url` | the archive is at an HTTPS address |
+| `claims.evidence_url` | the receipt should carry its own location |
 
 ```bash
 oob pack --evidence-dir ./evidence --out evidence.tgz
-# pass evidence-file, or upload it and sign the URL:
-oob sign ... --claims evidence_url="https://host/evidence.tgz"
 ```
 
-The claim is signed, so a comment is self-contained. Resolution order is
-`evidence-file`, then `evidence-url`, then `claims.evidence_url`.
-`require-evidence: false` restores digest-only runs.
+The verifier extracts the archive, recomputes the digest, and compares it with
+the value that was signed. A mismatch is `E_EVIDENCE_MISMATCH` and the verdict
+is `unverified`. A matching archive is uploaded as the `oob-evidence` artifact,
+and the job summary shows a manifest plus bounded text previews.
 
-The runner reads or downloads the archive, extracts it safely, recomputes the
-digest, and compares it with the signed one. Neither source is
-`E_NO_EVIDENCE`; a mismatch is `E_EVIDENCE_MISMATCH`. A matching bundle is
-uploaded as the `oob-evidence` artifact, and the run summary shows a manifest
-plus bounded text previews. The GitHub token is sent only to `api.github.com`
-and `github.com`; other hosts must serve a public or signed URL.
+Set `require-evidence: false` to accept the signed digest without an archive.
 
-### Receipt collection
-
-- `receipt` input, when set, wins. Use it for `workflow_dispatch`.
-- Otherwise the workflow reads issue comments on `pr` and keeps only comments
-  from trusted authors: `trusted-authors` if set, else `OWNER`, `MEMBER`, or
-  `COLLABORATOR`. Untrusted markers are ignored, so a stranger cannot stall the
-  gate by posting one.
-- Blocks naming an older commit are ignored, so a re-run can post a fresh
-  receipt without deleting the previous one. Only an expected-commit block is
-  a candidate at all.
-- Byte-identical blocks are accepted as one; blocks for the expected commit
-  that disagree are `E_MULTI_BLOCK`.
-
-### Triggers and forks
-
-`pull_request` from a fork gets a read-only token, so nothing can be published.
-Use `pull_request_target` (default-branch code, no PR checkout) or
-`issue_comment` for forks. `pull_request` also runs the PR's own copy of the
-workflow, which lets a contributor weaken the gate; avoid it for this job.
-
-### Credentials
-
-`sign` and `verify` need no GitHub credential and work with the network off.
-Publishing needs a GitHub App identity; inside Actions the automatic
-`GITHUB_TOKEN` is the Actions App. A PAT can create only commit statuses, so
-there is no CLI publish command.
-
-### Air-gapped operator hosts
-
-The signing host can have no outbound network at all. Run the single-file
-`oob.pyz` (or install the wheel) from the release, carry the repository as a `git bundle`, and carry the
-receipt and evidence out by hand. See [docs/offline.md](docs/en/offline.md).
-
-### Retention
-
-Checks and workflow runs follow the Actions retention setting (90 days by
-default; 90 is the maximum for public repositories). The receipt in the PR
-comment is the durable record, and the evidence directory stays on the operator
-side.
+The GitHub token is sent only to `api.github.com` and `github.com`. Other hosts
+must serve a public or signed URL.
 
 ## What a receipt proves
 
@@ -324,29 +189,46 @@ repository, commit, tree, job, and evidence digest.
 
 It does not prove that the job ran correctly, that the evidence matches the
 digest, or that the host was uncompromised. It is an attestation, not a proof
-of correctness. See [SPEC.md](SPEC.md) §8.
+of correctness. See [Trust](docs/en/concepts/trust.md) and
+[SPEC.md](SPEC.md) §8.
 
-## The name
+## Documentation
 
-Out-of-band means the check runs outside the normal CI path. GitHub still
-receives the result, but the job and the signature happen somewhere else: a lab
-machine, an HPC login node, a rented GPU. What crosses back is a signed receipt.
+Start with the [docs map](docs/en/README.md). The short version:
 
-The command is `oob`, the short form. The package and the repository use the
-full name, `out-of-band`.
+| If you want to | Read |
+| --- | --- |
+| Install and sign the first receipt | [Get started](docs/en/start.md) |
+| Understand receipts, trust, evidence, states | [Concepts](docs/en/README.md#read-by-what-you-are-doing) |
+| Look up a command or an input | [CLI](docs/en/reference/cli.md), [action](docs/en/reference/action.md), [workflow](docs/en/reference/workflow.md) |
+| Follow an end-to-end setup | [Patch gate](docs/en/guides/patch-gate.md), [hardware run](docs/en/guides/hardware-run.md) |
+| Run it on an air-gapped host | [Air-gapped hosts](docs/en/guides/air-gapped.md) |
+| Compare with other tools | [Prior art](docs/en/prior-art.md) |
 
-## Development
+Chinese documentation mirrors the English tree under [`docs/zh/`](docs/zh/README.md).
+
+## Install
 
 ```bash
-pip install -e ".[dev]"
-pytest -q
-ruff check src tests
+pip install out-of-band
 ```
 
-`SPEC.md` is normative. `docs/en/validation.md` records the operator-host test.
-The self-test workflow signs four receipts and asserts that valid ones pass and
-forged ones do not.
+Each release also carries `oob-<version>.pyz`, a single-file build that needs
+only Python. It is the usual choice for a host that cannot reach PyPI.
+
+Python 3.10 through 3.14 are tested. Windows works with `python oob-<version>.pyz`.
+
+## Project
+
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Changelog](CHANGELOG.md)
+- [Examples](examples/README.md)
+- [Normative specification](SPEC.md)
+- License: Apache-2.0
 
 ## Non-goals
 
-No runner, no hosted service, no GitHub App, no Sigstore, no artifact storage.
+No runner, no hosted service, no GitHub App, no Sigstore, no transparency log,
+no artifact storage. The tool signs and verifies a statement; everything else
+belongs to the repository that uses it.

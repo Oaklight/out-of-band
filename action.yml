@@ -55,7 +55,7 @@ inputs:
   version:
     description: Version of out-of-band to install; empty installs nothing
     required: false
-    default: "0.4.0"
+    default: "0.5.0"
   source:
     description: Local path to install instead of version, for development and the in-repo self-test
     required: false

@@ -2,56 +2,59 @@
 
 [English](README.md) | [中文](../zh/README.md)
 
-Some jobs cannot run on GitHub: a benchmark on a rented GPU box, a patch smoke
-test on a workstation, a training run inside a lab network. Out-of-band lets the
-machine that ran the job sign a short claim, and lets GitHub verify it and
-publish a check run. It also covers jobs that could run on CI but already ran somewhere else, where re-running is slow, flaky, or expensive.
+Two kinds of jobs end up here:
 
-Pick the page that matches what you are doing.
+- a job GitHub cannot run, because the hardware, the toolchain, the network, or
+  the data is somewhere else;
+- a job that already ran somewhere else, and repeating it in CI is slow,
+  flaky, or gives a different answer.
+
+In both cases the machine that ran the job signs a short claim, and a workflow
+on GitHub verifies it and publishes a check. The machine needs no inbound path
+and no GitHub credential.
 
 Prefer a visual walkthrough? [Take the guided tour](https://oaklight.github.io/out-of-band/).
 
+## Read by what you are doing
+
 | If you want to | Read |
 | --- | --- |
-| Block a PR until a patch has been tested | [Patch gate](scenario-patch-gate.md) |
-| Record a benchmark or model run against a commit | [Hardware run](scenario-hardware-run.md) |
-| Attest pushes to a branch, with no PR involved | [Branch gate](scenario-branch-gate.md) |
-| Cover several machines or jobs | [Multiple jobs](scenario-multi-job.md) |
-| Use the verifier as a step instead of a job | [The action](action.md) |
-| Sign on a host with no outbound network | [Air-gapped hosts](offline.md) |
+| Install it and sign your first receipt | [Get started](start.md) |
+| Understand what a receipt binds | [Receipts](concepts/receipt.md) |
+| Decide which key counts, and what the gate does not prove | [Trust](concepts/trust.md) |
+| Attach logs or outputs to a receipt | [Evidence](concepts/evidence.md) |
+| Understand the four verdicts | [States](concepts/states.md) |
+| Look up a command or an exit code | [CLI](reference/cli.md) |
+| Use the verifier as a step | [Action](reference/action.md) |
+| Use the verifier as a job | [Reusable workflow](reference/workflow.md) |
+| Block a PR until a patch has been tested | [Patch gate](guides/patch-gate.md) |
+| Record a benchmark or model run against a commit | [Hardware run](guides/hardware-run.md) |
+| Cover several machines or jobs | [Multiple jobs](guides/multi-job.md) |
+| Attest pushes when no pull request exists | [Branch gate](guides/branch-gate.md) |
+| Sign on a host with no outbound network | [Air-gapped hosts](guides/air-gapped.md) |
 | Generate, rotate, or debug keys | [Operations](operations.md) |
 | See the evidence from the self-test runs | [Validation](validation.md) |
-| How this compares to Sigstore, attestations, and prior art | [Prior art](prior-art.md) |
+| Compare with Sigstore, attestations, and prior art | [Prior art](prior-art.md) |
+| Get a straight answer to a common objection | [FAQ](faq.md) |
 
-## The shape they share
+## How the pieces fit
 
-Every setup has the same three parts.
-
-1. **A receipt.** One line of JSON and an SSH signature, produced by the
-   operator on the machine that ran the job with `oob sign`. No network,
-   no GitHub credential.
-2. **A verifier.** The workflow or action checks the signature against
-   `allowed_signers` read from the default branch, then binds the repository,
+1. **A receipt.** One line of JSON and an SSH signature, produced by `oob sign`
+   on the machine that ran the job. No network, no GitHub credential.
+2. **A verifier.** A workflow or action checks the signature against
+   `allowed_signers` read from the default branch, then checks the repository,
    commit, tree, and job.
 3. **A check run.** GitHub publishes the verdict on the commit. Branch
    protection matches the check by name.
 
-The states are distinct and stay that way:
-
-| State | Meaning | Who acts |
-| --- | --- | --- |
-| `verified` | a valid signature over a passing claim | the merge can proceed |
-| `failed` | a valid signature over a failing claim | fix the job, sign again |
-| `unverified` | no usable receipt, a bad signature, or evidence that does not match | the operator |
-| `not applicable` | no receipt was required for this change | nobody |
-
-`unverified` is not a softer `failed`. It means the gate could not tell, so it
-asks a human instead of guessing.
+The repository implements the mechanism. The consumer owns the policy: which
+paths need a receipt, which job name, which key, and whether the check is
+required.
 
 ## Before wiring anything
 
-- Pin the workflow or action by full commit SHA. A tag can move.
+- Pin the action or workflow by full commit SHA. A tag can move.
 - Put `allowed_signers` in `.github/` on the default branch. That file is the
-  trust root, and a PR cannot change it for itself.
+  trust root, and a pull request cannot change it for itself.
 - Choose `check-name` once. Branch protection matches the string, so renaming
   it silently changes what is protected.

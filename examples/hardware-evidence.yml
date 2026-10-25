@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: Oaklight/out-of-band@v0.5.0
+      - uses: Oaklight/out-of-band@<full-sha> # v0.5.0
         with:
           pr: ${{ inputs.pr }}
           commit: ${{ inputs.commit }}

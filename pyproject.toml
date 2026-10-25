@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "out-of-band"
-version = "0.4.1"
-description = "Out-of-band CI receipts: sign where GitHub cannot reach, verify in Actions, publish a check."
+version = "0.5.0"
+description = "Signed receipts for CI checks that GitHub cannot run, or that already ran elsewhere."
 readme = "README_en.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
